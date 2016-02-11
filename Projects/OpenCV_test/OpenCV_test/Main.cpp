@@ -43,7 +43,8 @@ art_sleeveType checkSleeveType(int input);
 Ptr<TrainData> createTrainingData(vector<ClothArticle*> input, string classifierGroup);
 void Change2016(string filename, string testType);
 void tester_SVM_vs_RF(string filename, string testType);
-vector<int> createlocalEdgeImageHist(Mat edges, int size);
+vector<float> createlocalEdgeImageHist(Mat edges, int size);
+float calcEuclDist(Mat fVec1, Mat fVec2);
 
 int main(int argc, char** argv)
 {
@@ -61,52 +62,7 @@ int main(int argc, char** argv)
 
 	//printCanny(image);
 	//printGaussianBlur(image);
-
-	/*
-
-	if (!image.data) // Check for invalid input
-	{
-		cout << "Could not open or find the image" << std::endl;
-		return -1;
-	}
-	cout << image.channels() << endl;
-
-	filterAlphaArtifacts(&image);
-
-	printCanny(image);
-
-	Mat *ch = (Mat*)calloc(4, sizeof(Mat));
-	split(image, ch);
-
-	Mat dst;
-	Canny(image, dst, 50, 200, 3);
-
-	cout << dst.channels() << endl;
-
-	namedWindow("Hepp", 1);
-	imshow("Hepp", dst);
-	
-	Mat tmpl;
-	tmpl = imread(argv[2], IMREAD_UNCHANGED);
-	namedWindow("Template", 1);
-	imshow("Template", tmpl);
-
-	Mat res = Mat(image.cols - tmpl.cols + 1, image.rows - tmpl.rows + 1, CV_32FC1);
-
-	cout << res.size << endl;
-
-	//matchTemplate(image, tmpl, res, CV_TM_SQDIFF_NORMED);
-
-	namedWindow("Result", 1);
-	imshow("Result", res); 
-	
-	waitKey(0); // Wait for a keystroke in the window
-	*/
-
-
-	//printHough(image);
 	//rtrees();
-	//svm();
 
 	//test_ml();
 
@@ -116,11 +72,150 @@ int main(int argc, char** argv)
 
 	//Change2016("rBoS.txt", "Color");
 
-	//svm();
+	svm();
 
-	tester_SVM_vs_RF("rAll.txt", "ClothingType");
+	//tester_SVM_vs_RF("rAll.txt", "ClothingType");
 
 	return 0;
+}
+
+void testModelWithImage(string trainingFilename, string testFilename)
+{
+	ifstream trainingFile(trainingFilename, ios::in);
+
+	vector<ClothArticle*> allArticles;
+
+	string line;
+	while (getline(trainingFile, line))
+	{
+		allArticles.push_back(inputParser(line));
+	}
+	trainingFile.close();
+
+	Ptr<SVM> model = makeSVMModel(allArticles, "ClothingType");
+
+	ifstream testFile(testFilename, ios::in);
+
+	getline(testFile, line);
+	ClothArticle* testItem = inputParser(line); // <-- kommer inte funka för den vill ha en textfil (rAll.txt), men här ska det endast vara en "plain" bildfil
+
+	testFile.close();
+
+	Mat testFeatVec = createFeatureVector(testItem, "ClothingType");
+
+	float predictResponse = model->predict(testFeatVec);
+
+	cout << "Support Vector Machine" << endl;
+	cout << "Predicted: " << to_string(art_clType((int)predictResponse)) << endl;
+
+	namedWindow("Test Image", 1);
+	imshow("Test Image", testItem->getImage());
+
+	waitKey(0);
+}
+
+Mat createFeatureVector(ClothArticle* input, string testType)
+{
+	Mat fVec;
+
+	if (testType == "Color")
+	{
+		Mat hsvImg;
+		cvtColor(input->getImage(), hsvImg, COLOR_BGR2HSV);
+
+		fVec = Mat(1, 32 * 6, CV_32F);
+		for (int j = 0; j < 6; j++)
+		{
+			Mat ch, hs, nhs;
+			if (j<3)
+			{
+				ch = getChannel(input->getImage(), j);
+				hs = get8bitHist(ch, 32);
+				nhs = normalizeHist(hs);
+			}
+			else
+			{
+				ch = getChannel(hsvImg, j - 3);
+				hs = getHsvHist(ch, j - 3, 32);
+				nhs = normalizeHist(hs);
+			}
+
+			for (int k = 0; k < 32; k++)
+			{
+				fVec.at<float>(nhs.rows * j + k, 0) = (float)nhs.at<float>(k, 0);
+			}
+		}
+	}
+	else if (testType == "ClothingType")
+	{
+		fVec = Mat(1, 2 * 100, CV_32FC1);
+		Mat imgGray;
+		cvtColor(input->getImage(), imgGray, COLOR_BGR2GRAY);
+		Mat binary;
+
+		threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
+
+		binary = binary * 255;
+
+		Mat imgBlur = preformGaussianBlur(imgGray);
+		Mat edges = preformCanny(imgBlur);
+
+		vector<float> tmp = createlocalEdgeImageHist(edges, 30);
+
+		for (int j = 0; j < tmp.size(); j++)
+		{
+			fVec.at<float>(j, 0) = (float)tmp.at(j);
+		}
+
+		imgBlur = preformGaussianBlur(binary);
+		edges = preformCanny(imgBlur);
+
+		tmp = createlocalEdgeImageHist(edges, 30);
+
+		for (int j = 0; j < tmp.size(); j++)
+		{
+			fVec.at<float>(j + 100, 0) = (float)tmp.at(j);
+		}
+
+	}
+	return fVec;
+}
+
+Ptr<SVM> makeSVMModel(vector<ClothArticle*> input, string testType)
+{
+	Ptr<TrainData> tData = createTrainingData(input, testType);
+
+	Ptr<SVM> svm = SVM::create();
+	
+	svm->setType(SVM::C_SVC);
+	//svm->setKernel(SVM::LINEAR);
+	//svm->setKernel(SVM::POLY); svm->setDegree(2.0);
+	svm->setKernel(SVM::CHI2);
+	svm->setGamma(1);
+	svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
+
+	svm->train(tData, 0);
+
+	return svm;
+}
+
+Ptr<RTrees> makeRTModel(vector<ClothArticle*> input, string testType)
+{
+	Ptr<TrainData> tData = createTrainingData(input, testType);
+
+	Ptr<RTrees> rt = RTrees::create();
+
+	rt->setMaxDepth(20);
+	rt->setMinSampleCount(20);
+	rt->setMaxCategories(20);
+
+	rt->setCalculateVarImportance(false);
+	rt->setRegressionAccuracy(0.0f);
+	rt->setPriors(Mat());
+
+	rt->train(tData, 0);
+
+	return rt;
 }
 
 void tester_SVM_vs_RF(string filename, string testType)
@@ -132,9 +227,10 @@ void tester_SVM_vs_RF(string filename, string testType)
 	string line;
 	while (getline(infile, line))
 	{
-		ClothArticle *tmp = inputParser(line);
-		allArticles.push_back(tmp);
+		allArticles.push_back(inputParser(line));
 	}
+
+	infile.close();
 	
 	int totSize = allArticles.size();
 	int partSize = totSize / 10;
@@ -186,10 +282,14 @@ void tester_SVM_vs_RF(string filename, string testType)
 		svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
 		//svm->setDegree(2.0);
 		svm->setGamma(1);
-		//svm->trainAuto(tDataSVM);
+		
 		svm->train(tDataSVM, 0);
 
 		cout << "Träning är klar" << endl;
+
+		Ptr<TrainData> vDataRT = createTrainingData(testArticles, testType);
+		Ptr<TrainData> vDataSVM = createTrainingData(testArticles, testType);
+
 
 		int svmHits = 0;
 		int rtHits = 0;
@@ -229,7 +329,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 			}
 			else if (testType == "ClothingType")
 			{
-				testFeatures = Mat(/*rgbImg.size().area()*/ 2 * 100, 1, CV_32FC1);
+				testFeatures = Mat(2 * 100, 1, CV_32FC1);
 				Mat imgGray;
 				cvtColor(rgbImg, imgGray, COLOR_BGR2GRAY);
 				Mat binary;
@@ -237,26 +337,11 @@ void tester_SVM_vs_RF(string filename, string testType)
 				threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
 
 				binary = binary * 255;
-				//namedWindow("Test binary", 1);
-				//imshow("Test binary", binary);
-
-
-				//Mat lapImg;
-				//Laplacian(binary, lapImg, 256, 2, 1, 1, 4);
 
 				Mat imgBlur = preformGaussianBlur(imgGray);
 				Mat edges = preformCanny(imgBlur);
 
-				//namedWindow("Test Edges", 1);
-				//imshow("Test Edges", edges);
-
-
-				vector<int> tmp = createlocalEdgeImageHist(edges, 30);
-
-
-				//namedWindow("Test Edges", 1);
-				//imshow("Test Edges", edges);
-
+				vector<float> tmp = createlocalEdgeImageHist(edges, 30);
 
 				for (int j = 0; j < tmp.size(); j++)
 				{
@@ -268,25 +353,11 @@ void tester_SVM_vs_RF(string filename, string testType)
 
 				tmp = createlocalEdgeImageHist(edges, 30);
 
-				//namedWindow("Test Edges2", 1);
-				//imshow("Test Edges2", edges);
-
 				for (int j = 0; j < tmp.size(); j++)
 				{
 					testFeatures.at<float>(j + 100, 0) = (float)tmp.at(j);
 				}
 
-
-
-				/*
-				for (int j = 0; j < edges.rows; j++)
-				{
-				for (int k = 0; k < edges.cols; k++)
-				{
-				testFeatures.at<float>(j * edges.cols + k, 0) = (float)edges.at<unsigned char>(j, k);
-				}
-				}
-				*/
 			}
 
 
@@ -295,6 +366,8 @@ void tester_SVM_vs_RF(string filename, string testType)
 				testFeatures2 = Mat(1, 32 * 6, CV_32FC1);
 			else if(testType == "ClothingType")
 				testFeatures2 = Mat(1, 2 * 100, CV_32FC1);
+
+			cout << testFeatures2 << endl;
 
 
 			transpose(testFeatures, testFeatures2);
@@ -318,7 +391,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 				if (art_clType((int)predictSVMResponse) == testArticles.at(i)->getClType())
 					svmHits++;
 
-				/*
+				
 				cout << "Random Forest" << endl;
 				cout << "Predicted: " << to_string(art_clType((int)predictRTResponse)) << endl;
 				cout << "  Acctual: " << to_string(testArticles.at(i)->getClType()) << endl << endl;
@@ -326,7 +399,12 @@ void tester_SVM_vs_RF(string filename, string testType)
 				cout << "Support Vector Machine" << endl;
 				cout << "Predicted: " << to_string(art_clType((int)predictSVMResponse)) << endl;
 				cout << "  Acctual: " << to_string(testArticles.at(i)->getClType()) << endl << endl;
-				*/
+				
+
+				namedWindow("Test Image", 1);
+				imshow("Test Image", rgbImg);
+
+				waitKey(0);
 			}
 			
 		}
@@ -412,10 +490,6 @@ void Change2016(string filename, string testType)
 	}
 
 	
-
-	
-
-	
 	for (int i = 0; i < trainingArticles.size(); i++)
 	{
 		delete(trainingArticles[i]);
@@ -481,7 +555,7 @@ void Change2016(string filename, string testType)
 			imshow("Test Edges", edges);
 
 			
-			vector<int> tmp = createlocalEdgeImageHist(edges, 30);
+			vector<float> tmp = createlocalEdgeImageHist(edges, 30);
 			
 
 			namedWindow("Test Edges", 1);
@@ -505,24 +579,7 @@ void Change2016(string filename, string testType)
 			{
 				testFeatures.at<float>(j+100, 0) = (float)tmp.at(j);
 			}
-
-
-
-			/*
-			for (int j = 0; j < edges.rows; j++)
-			{
-				for (int k = 0; k < edges.cols; k++)
-				{
-					testFeatures.at<float>(j * edges.cols + k, 0) = (float)edges.at<unsigned char>(j, k);
-				}
-			}
-			*/
 		}
-		
-
-		cout << testFeatures << endl;
-		cout << testFeatures.type() << endl;
-		cout << testFeatures.cols << endl;
 		
 		Mat testFeatures2 = Mat(1, 32 * 6, CV_32FC1);
 
@@ -555,12 +612,28 @@ void Change2016(string filename, string testType)
 	cout << "SLUT" << endl;
 }
 
-vector<int> createlocalEdgeImageHist(Mat edges, int size)
+float calcEuclDist(Mat fVec1, Mat fVec2)
+{
+	if (fVec1.size() != fVec2.size())
+		return -1.0f;
+
+	float dist = 0;;
+	for (int i = 0; i < fVec1.rows; i++)
+	{
+		for (int j = 0; j < fVec1.cols; j++)
+		{
+			dist = fVec1.at<float>(i, j) - fVec2.at<float>(i, j);
+		}
+	}
+	return dist;
+}
+
+vector<float> createlocalEdgeImageHist(Mat edges, int size)
 {
 	int nVerBoxs = edges.size().height / size;
 	int nHorBoxs = edges.size().width / size;
 	int leiHistSize = nVerBoxs * nHorBoxs;
-	vector<int> leiHist(leiHistSize);
+	vector<float> leiHist(leiHistSize);
 
 	for (int s = 0; s < nHorBoxs;s++)
 	{
@@ -571,11 +644,11 @@ vector<int> createlocalEdgeImageHist(Mat edges, int size)
 			{
 				for (int j = 0; j < size; j++)
 				{
-					//cout << "x: " << s * nHorBoxs + i << "\ty: " << t * nVerBoxs + j << endl;
-					tot += (int)edges.at<unsigned char>(s * size + i, t * size + j);
+					if((int)edges.at<unsigned char>(s * size + i, t * size + j) != 0)
+						tot ++;
 				}
 			}
-			leiHist[s * nVerBoxs + t] = (int)tot;
+			leiHist[s * nVerBoxs + t] = (float)tot / (float)(size*size);
 		}
 	}
 	return leiHist;
@@ -662,7 +735,7 @@ Ptr<TrainData> createTrainingData(vector<ClothArticle*> input, string classifier
 			Mat imgBlur = preformGaussianBlur(imgGray);
 			Mat edges = preformCanny(imgBlur);
 			
-			vector<int> tmp = createlocalEdgeImageHist(edges, 30);
+			vector<float> tmp = createlocalEdgeImageHist(edges, 30);
 			
 
 			for (int j = 0; j < tmp.size(); j++)
@@ -927,7 +1000,8 @@ void svm()
 	
 	Ptr<SVM> svm = SVM::create();
 	svm->setType(SVM::C_SVC);
-	svm->setKernel(SVM::LINEAR);
+	//svm->setKernel(SVM::LINEAR);
+	svm->setGamma(1); svm->setKernel(SVM::CHI2);
 	svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
 	
 	svm->train(tData2, 0);
@@ -1047,26 +1121,6 @@ void printHough(Mat input) //Funkar bara i Release mode
 
 }
 
-void printGPUCanny(Mat src)
-{
-	InputArray g = src;
-	
-
-	Mat& mGr = src;
-
-	Mat mask;
-	
-	
-	Mat src1(640, 480, CV_8UC4, Scalar::all(0));
-	//GpuMat *d_src1 = GpuMat::create;
-
-	//GpuMat b(mask);
-
-	//GpuMat::Allocator all;
-	//GpuMat *prGpu(g,);
-
-}
-
 Mat preformCanny(Mat src)
 {
 	Mat out;
@@ -1123,9 +1177,6 @@ Mat get8bitHist(Mat img1D, int numLevels, int minRange, int maxRange)
 	calcHist(&img1D, 1, channels, Mat(), hist, 1, histSize, ranges, true, false);
 	calcHist(&img1D, 1, channels, Mat(), hist2, 1, histSize, ranges2, true, false);
 
-	//cout << hist << endl;
-	//cout << hist2 << endl;
-
 	return hist2;
 }
 
@@ -1158,7 +1209,7 @@ Mat getHsvHist(Mat img1D, int type, int numLevels, int minRange, int maxRange)
 	return hist;
 }
 
-Mat getChannel(Mat src, int channel)  // HÄR <<-<-<-<-<-<-<-<-<-<-<-
+Mat getChannel(Mat src, int channel)
 {
 	Mat *ch = (Mat*)calloc(4, sizeof(Mat));
 
