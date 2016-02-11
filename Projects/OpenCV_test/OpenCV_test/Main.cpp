@@ -4,6 +4,7 @@
 #include <opencv2/ml.hpp>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <opencv/cv.hpp >
 
 #include <opencv2/core.hpp>
@@ -13,7 +14,6 @@
 #include <opencv2/ml.hpp>
 
 #include "opencv2/features2d.hpp"
-//#include "opencv2/xfeatures2d.hpp"
 
 #include "ClothArticle.h"
 
@@ -22,7 +22,6 @@
 
 using namespace cv;
 using namespace cv::ml;
-using namespace cv::cuda;
 using namespace std;
 
 
@@ -43,6 +42,7 @@ art_clType checkClType(string input);
 art_sleeveType checkSleeveType(int input);
 Ptr<TrainData> createTrainingData(vector<ClothArticle*> input, string classifierGroup);
 void Change2016(string filename, string testType);
+void tester_SVM_vs_RF(string filename, string testType);
 vector<int> createlocalEdgeImageHist(Mat edges, int size);
 
 int main(int argc, char** argv)
@@ -114,9 +114,248 @@ int main(int argc, char** argv)
 
 	//inputParser("PATH");
 
-	Change2016("rBoS.txt", "ClothingType");
+	//Change2016("rBoS.txt", "Color");
+
+	//svm();
+
+	tester_SVM_vs_RF("rAll.txt", "ClothingType");
 
 	return 0;
+}
+
+void tester_SVM_vs_RF(string filename, string testType)
+{
+	ifstream infile(filename, ios::in);
+
+	vector<ClothArticle*> allArticles;
+
+	string line;
+	while (getline(infile, line))
+	{
+		ClothArticle *tmp = inputParser(line);
+		allArticles.push_back(tmp);
+	}
+	
+	int totSize = allArticles.size();
+	int partSize = totSize / 10;
+
+
+	double bestRTHitRatio = 0.0;
+	double bestSVMHitRatio = 0.0;
+
+	int totRTHits = 0;
+	int totSVMHits = 0;
+	for (int t = 0; t < 10;t++)
+	{
+		vector<ClothArticle*> trainingArticles;
+		vector<ClothArticle*> testArticles;
+
+		for (int r = 0; r < totSize; r++)
+		{
+			if (t == r / partSize)
+				testArticles.push_back(allArticles.at(r));
+			else
+				trainingArticles.push_back(allArticles.at(r));
+		}
+
+
+		cout << "skapa träningsdata" << endl;
+		Ptr<TrainData> tDataRT = createTrainingData(trainingArticles, testType);
+		Ptr<TrainData> tDataSVM = createTrainingData(trainingArticles, testType);
+		cout << "träningsdata skapad" << endl;
+
+
+		cout << "Träning börjar" << endl;
+		Ptr<RTrees> rt = RTrees::create();
+		Ptr<SVM> svm = SVM::create();
+
+		rt->setMaxDepth(20);
+		rt->setMinSampleCount(20);
+		rt->setMaxCategories(20);
+
+		rt->setCalculateVarImportance(false);
+		rt->setRegressionAccuracy(0.0f);
+		rt->setPriors(Mat());
+
+		rt->train(tDataRT, 0);
+
+		svm->setType(SVM::C_SVC);
+		//svm->setKernel(SVM::LINEAR);
+		//svm->setKernel(SVM::POLY);
+		svm->setKernel(SVM::CHI2);
+		svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
+		//svm->setDegree(2.0);
+		svm->setGamma(1);
+		//svm->trainAuto(tDataSVM);
+		svm->train(tDataSVM, 0);
+
+		cout << "Träning är klar" << endl;
+
+		int svmHits = 0;
+		int rtHits = 0;
+
+		for (int i = 0; i < testArticles.size(); i++)
+		{
+			Mat rgbImg = testArticles.at(i)->getImage();
+			Mat hsvImg;
+			cvtColor(rgbImg, hsvImg, COLOR_BGR2HSV);
+
+			Mat testFeatures;
+
+			if (testType == "Color")
+			{
+				testFeatures = Mat(32 * 6, 1, CV_32F);
+				for (int j = 0; j < 6; j++)
+				{
+					Mat ch, hs, nhs;
+					if (j<3)
+					{
+						ch = getChannel(rgbImg, j);
+						hs = get8bitHist(ch, 32);
+						nhs = normalizeHist(hs);
+					}
+					else
+					{
+						ch = getChannel(hsvImg, j - 3);
+						hs = getHsvHist(ch, j - 3, 32);
+						nhs = normalizeHist(hs);
+					}
+
+					for (int k = 0; k < 32; k++)
+					{
+						testFeatures.at<float>(nhs.rows * j + k, 0) = (float)nhs.at<float>(k, 0);
+					}
+				}
+			}
+			else if (testType == "ClothingType")
+			{
+				testFeatures = Mat(/*rgbImg.size().area()*/ 2 * 100, 1, CV_32FC1);
+				Mat imgGray;
+				cvtColor(rgbImg, imgGray, COLOR_BGR2GRAY);
+				Mat binary;
+
+				threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
+
+				binary = binary * 255;
+				//namedWindow("Test binary", 1);
+				//imshow("Test binary", binary);
+
+
+				//Mat lapImg;
+				//Laplacian(binary, lapImg, 256, 2, 1, 1, 4);
+
+				Mat imgBlur = preformGaussianBlur(imgGray);
+				Mat edges = preformCanny(imgBlur);
+
+				//namedWindow("Test Edges", 1);
+				//imshow("Test Edges", edges);
+
+
+				vector<int> tmp = createlocalEdgeImageHist(edges, 30);
+
+
+				//namedWindow("Test Edges", 1);
+				//imshow("Test Edges", edges);
+
+
+				for (int j = 0; j < tmp.size(); j++)
+				{
+					testFeatures.at<float>(j, 0) = (float)tmp.at(j);
+				}
+
+				imgBlur = preformGaussianBlur(binary);
+				edges = preformCanny(imgBlur);
+
+				tmp = createlocalEdgeImageHist(edges, 30);
+
+				//namedWindow("Test Edges2", 1);
+				//imshow("Test Edges2", edges);
+
+				for (int j = 0; j < tmp.size(); j++)
+				{
+					testFeatures.at<float>(j + 100, 0) = (float)tmp.at(j);
+				}
+
+
+
+				/*
+				for (int j = 0; j < edges.rows; j++)
+				{
+				for (int k = 0; k < edges.cols; k++)
+				{
+				testFeatures.at<float>(j * edges.cols + k, 0) = (float)edges.at<unsigned char>(j, k);
+				}
+				}
+				*/
+			}
+
+
+			Mat testFeatures2;
+			if(testType == "Color")
+				testFeatures2 = Mat(1, 32 * 6, CV_32FC1);
+			else if(testType == "ClothingType")
+				testFeatures2 = Mat(1, 2 * 100, CV_32FC1);
+
+
+			transpose(testFeatures, testFeatures2);
+
+			float predictRTResponse = rt->predict(testFeatures2);
+			float predictSVMResponse = svm->predict(testFeatures2);
+
+			if (testType == "Color")
+			{
+				if (art_color((int)predictRTResponse) == testArticles.at(i)->getColor())
+					rtHits++;
+
+				if (art_color((int)predictSVMResponse) == testArticles.at(i)->getColor())
+					svmHits++;
+			}
+			else if (testType == "ClothingType")
+			{
+				if (art_clType((int)predictRTResponse) == testArticles.at(i)->getClType())
+					rtHits++;
+
+				if (art_clType((int)predictSVMResponse) == testArticles.at(i)->getClType())
+					svmHits++;
+
+				/*
+				cout << "Random Forest" << endl;
+				cout << "Predicted: " << to_string(art_clType((int)predictRTResponse)) << endl;
+				cout << "  Acctual: " << to_string(testArticles.at(i)->getClType()) << endl << endl;
+
+				cout << "Support Vector Machine" << endl;
+				cout << "Predicted: " << to_string(art_clType((int)predictSVMResponse)) << endl;
+				cout << "  Acctual: " << to_string(testArticles.at(i)->getClType()) << endl << endl;
+				*/
+			}
+			
+		}
+
+		cout << t << " RT Hits: " << rtHits << "\tRT Hitratio: " << (double)rtHits / (double)partSize << endl;
+		cout << t << " SVM Hits: " << svmHits << "\tSVM Hitratio: " << (double)svmHits / (double)partSize << endl;
+
+		bestRTHitRatio = max(bestRTHitRatio, (double)rtHits / (double)partSize);
+		bestSVMHitRatio = max(bestSVMHitRatio, (double)svmHits / (double)partSize);
+
+		totRTHits += rtHits;
+		totSVMHits += svmHits;
+	}
+
+	for (int i = 0; i < allArticles.size(); i++)
+	{
+		delete(allArticles[i]);
+	}
+	allArticles.clear();
+
+	double hitRatioRT  = (double)totRTHits / (double)totSize;
+	double hitRatioSVM = (double)totSVMHits / (double)totSize;
+
+	cout << "RT  Total Hitratio: " << hitRatioRT << "\tTotal hits: " << totRTHits << endl;
+	cout << "SVM Total Hitratio: " << hitRatioSVM << "\tTotal hits: " << totSVMHits << endl;
+
+	cout << "RT  Best HitRatio: " << bestRTHitRatio << endl;
+	cout << "SVM Best HitRatio: " << bestSVMHitRatio << endl;
+
 }
 
 void Change2016(string filename, string testType)
@@ -146,7 +385,7 @@ void Change2016(string filename, string testType)
 	Ptr<RTrees> rt = RTrees::create();
 	Ptr<SVM> svm = SVM::create();
 
-	if(true)
+	if(false)
 	{
 		
 
@@ -281,11 +520,19 @@ void Change2016(string filename, string testType)
 		}
 		
 
+		cout << testFeatures << endl;
+		cout << testFeatures.type() << endl;
+		cout << testFeatures.cols << endl;
+		
+		Mat testFeatures2 = Mat(1, 32 * 6, CV_32FC1);
+
+		transpose(testFeatures, testFeatures2);
+
 		float predictResponse;
-		if(true)
-			predictResponse = rt->predict(testFeatures);
+		if(false)
+			predictResponse = rt->predict(testFeatures2);
 		else
-			predictResponse = svm->predict(testFeatures);
+			predictResponse = svm->predict(testFeatures2);
 
 		if (testType == "Color")
 		{
@@ -676,7 +923,7 @@ void svm()
 	Mat responses;
 
 	Ptr<TrainData> tData = TrainData::create(trainingDataMat, SampleTypes::ROW_SAMPLE, labelsMat);
-	Ptr<TrainData> trData = TrainData::create(trainingDataMat, SampleTypes::ROW_SAMPLE, responses,noArray(),noArray(),noArray());
+	//Ptr<TrainData> trData = TrainData::create(trainingDataMat, SampleTypes::ROW_SAMPLE, responses,noArray(),noArray(),noArray());
 	
 	Ptr<SVM> svm = SVM::create();
 	svm->setType(SVM::C_SVC);
@@ -690,6 +937,8 @@ void svm()
 	Mat sampleMat = (Mat_<float>(1, 9) << 100, 100, 100, 100, 50, 100, 100, 100, 100);
 	Mat predictResponse;
 	svm->predict(sampleMat2, predictResponse, 0);
+
+	cout << sampleMat << endl;
 
 	cout << "Predict 1: " << predictResponse.at<float>(0, 0) << endl;
 	

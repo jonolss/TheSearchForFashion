@@ -5,6 +5,7 @@ import urllib.request
 import re
 import os, sys
 import getopt
+import random
 
 __trainingPath__ = "./" 
 __imagePath__    = __trainingPath__ + "images/"
@@ -20,6 +21,8 @@ def main():
 			tests()
 		elif sys.argv[1] == '--combine':
 			combine()
+		elif sys.argv[1] == '--shuffle':
+			shuffle()
 		elif sys.argv[1] == '--makeReady': #Returns only the data needed for the machine training. Reads input and writes to output stream.
 			makeReady()
 		elif sys.argv[1] == '-d': #Downloads the small images to "./images/". Reads input stream.
@@ -92,6 +95,22 @@ def tests():
 	print (sorted(sl))
 	print("kov")
 	
+def shuffle():
+	filepath = sys.argv[2]
+	file = open(filepath, 'r+')
+	
+	tmp = []
+	for line in file.read().split('\n'):
+		if(line != ""):
+			tmp.append(line)
+	
+	random.shuffle(tmp)
+	
+	file.seek(0,0)
+	file.write("\n".join(tmp))
+	file.close()
+	
+	
 def combine():
 	filepath1 = sys.argv[2]
 	filepath2 = sys.argv[3]
@@ -100,9 +119,7 @@ def combine():
 	file2 = open(filepath2, 'a')
 	
 	tmp = file1.read()
-	
 	file2.write(tmp)
-	
 	
 	file1.close()
 	file2.close()
