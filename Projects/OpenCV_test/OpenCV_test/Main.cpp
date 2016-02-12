@@ -83,9 +83,9 @@ int main(int argc, char** argv)
 
 	//svm();
 
-	//tester_SVM_vs_RF("rAll.txt", "ClothingType");
+	//tester_SVM_vs_RF("SallReady.txt", "ClothingType");
 
-	testModelWithImage("rAll.txt", "black0.jpg", "Color", false);
+	testModelWithImage("SallReady.txt", "hmtest2.jpg", "None", false);
 
 	return 0;
 }
@@ -105,42 +105,47 @@ void testModelWithImage(string trainingFilename, string testFilename, string tes
 	}
 	trainingFile.close();
 
-	Ptr<SVM> model;
-	if(!loadModel)
-	{
-		model = makeSVMModel(allArticles, testType);
-		if (testType == "Color")
-			model->save("ColorModel.xml");
-		else if (testType == "ClothingType")
-			model->save("ClTypeModel.xml");
-	}
-	else
-	{
-		if (testType == "Color")
-			model = Algorithm::load<SVM>("ColorModel.xml");
-		else if (testType == "ClothingType")
-			model = Algorithm::load<SVM>("ClTypeModel.xml");
-	}
-
 	ClothArticle* testItem = new ClothArticle('T', "Test0", testFilename, "Gra", "Top", -1);
 
 	Mat testFeatVec = createFeatureVector(testItem, testType);
 
-	float predictResponse = model->predict(testFeatVec);
-
-	cout << "Support Vector Machine" << endl;
-	if(testType == "Color")
+	if(testType != "None")
 	{
-		cout << "Predicted: " << to_string(art_color((int)predictResponse)) << endl;
-		testItem->setColor(art_color((int)predictResponse));
-	}
-	else if (testType == "ClothingType")
-	{
-		cout << "Predicted: " << to_string(art_clType((int)predictResponse)) << endl;
-		testItem->setClType(art_clType((int)predictResponse));
+		Ptr<SVM> model;
+		if (!loadModel)
+		{
+			model = makeSVMModel(allArticles, testType);
+			if (testType == "Color")
+				model->save("ColorModel.xml");
+			else if (testType == "ClothingType")
+				model->save("ClTypeModel.xml");
+		}
+		else
+		{
+			if (testType == "Color")
+				model = Algorithm::load<SVM>("ColorModel.xml");
+			else if (testType == "ClothingType")
+				model = Algorithm::load<SVM>("ClTypeModel.xml");
+		}
+
+		float predictResponse = model->predict(testFeatVec);
+
+		cout << "Support Vector Machine" << endl;
+		if (testType == "Color")
+		{
+			cout << "Predicted: " << to_string(art_color((int)predictResponse)) << endl;
+			testItem->setColor(art_color((int)predictResponse));
+		}
+		else if (testType == "ClothingType")
+		{
+			cout << "Predicted: " << to_string(art_clType((int)predictResponse)) << endl;
+			testItem->setClType(art_clType((int)predictResponse));
+		}
 	}
 
-	vector<string> nn = findClosestNeighbours(allArticles, testItem, 7, testType);
+	
+
+	vector<string> nn = findClosestNeighbours(allArticles, testItem, 11, testType);
 
 	namedWindow("Query", 1);
 	imshow("Query", testItem->getImage());
@@ -159,6 +164,45 @@ void testModelWithImage(string trainingFilename, string testFilename, string tes
 
 
 	waitKey(0);
+
+	if(true) //Shows some diffrent features from input image.
+	{
+		Mat imgGray;
+		cvtColor(testItem->getImage(), imgGray, COLOR_BGR2GRAY);
+		Mat binary;
+
+		threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
+
+		binary = binary * 255;
+
+		Mat noBluredges = preformCanny(binary);
+
+		Mat imgBlur = preformGaussianBlur(imgGray);
+		Mat edges = preformCanny(imgBlur);
+
+
+		namedWindow("Query T", 1);
+		imshow("Query T", testItem->getImage());
+
+		namedWindow("Query Gray", 1);
+		imshow("Query Gray", imgGray);
+
+		namedWindow("Query Binary", 1);
+		imshow("Query Binary", binary);
+
+		namedWindow("Query noBluredges", 1);
+		imshow("Query noBluredges", noBluredges);
+
+		namedWindow("Query imgBlur", 1);
+		imshow("Query imgBlur", imgBlur);
+
+		namedWindow("Query edges", 1);
+		imshow("Query edges", edges);
+
+
+		waitKey(0);
+	}
+	
 }
 
 struct GreatTuple
@@ -179,6 +223,16 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 	{
 		ClothArticle* curr = allArticles[i];
 		if(testType == "ClothingType" && curr->getClType() == query->getClType() || testType == "Color" && curr->getColor() == query->getColor())
+		{
+			Mat currFeat = createFeatureVector(curr, "Color+ClothingType");
+			float dist = calcEuclDist(queryFeat, currFeat);
+
+			tuple<float, string> currPriEntry;
+			currPriEntry = make_tuple(dist, curr->getId());
+
+			priQueue.push(currPriEntry);
+		}
+		else if (testType == "None")
 		{
 			Mat currFeat = createFeatureVector(curr, "Color+ClothingType");
 			float dist = calcEuclDist(queryFeat, currFeat);
@@ -260,7 +314,7 @@ Mat createFeatureVector(ClothArticle* input, string testType)
 		imgBlur = preformGaussianBlur(binary);
 		edges = preformCanny(imgBlur);
 
-		tmp = createlocalEdgeImageHist(edges, 30);
+		tmp = createlocalEdgeImageHist(/*binary*/edges, 30);
 
 		for (int j = 0; j < tmp.size(); j++)
 		{
@@ -293,7 +347,7 @@ Mat createFeatureVector(ClothArticle* input, string testType)
 		imgBlur = preformGaussianBlur(binary);
 		edges = preformCanny(imgBlur);
 
-		tmp = createlocalEdgeImageHist(edges, 30);
+		tmp = createlocalEdgeImageHist(/*binary*/edges, 30);
 
 		for (int j = 0; j < tmp.size(); j++)
 		{
@@ -499,7 +553,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 				imgBlur = preformGaussianBlur(binary);
 				edges = preformCanny(imgBlur);
 
-				tmp = createlocalEdgeImageHist(edges, 30);
+				tmp = createlocalEdgeImageHist(/*binary*/edges, 30);
 
 				for (int j = 0; j < tmp.size(); j++)
 				{
@@ -515,7 +569,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 			else if(testType == "ClothingType")
 				testFeatures2 = Mat(1, 2 * 100, CV_32FC1);
 
-			cout << testFeatures2 << endl;
+			//cout << testFeatures2 << endl;
 
 
 			transpose(testFeatures, testFeatures2);
@@ -539,7 +593,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 				if (art_clType((int)predictSVMResponse) == testArticles.at(i)->getClType())
 					svmHits++;
 
-				
+				/*
 				cout << "Random Forest" << endl;
 				cout << "Predicted: " << to_string(art_clType((int)predictRTResponse)) << endl;
 				cout << "  Acctual: " << to_string(testArticles.at(i)->getClType()) << endl << endl;
@@ -553,6 +607,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 				imshow("Test Image", rgbImg);
 
 				waitKey(0);
+				*/
 			}
 			
 		}
@@ -681,7 +736,7 @@ void Change2016(string filename, string testType)
 		}
 		else if (testType == "ClothingType")
 		{
-			testFeatures = Mat(/*rgbImg.size().area()*/ 2*100, 1, CV_32FC1);
+			testFeatures = Mat( 2*100, 1, CV_32FC1);
 			Mat imgGray;
 			cvtColor(rgbImg, imgGray, COLOR_BGR2GRAY);
 			Mat binary;
@@ -914,114 +969,6 @@ void surf_test(Mat image)
 
 }
 
-
-void test_ml_black()
-{
-
-	vector<int> labels;
-	vector<Mat> trainingImages;
-	for (int i = 0; i < 5; i++)
-	{
-		labels.push_back(1);
-		Mat tmpImg = imread("./Training/black" + to_string(i) + ".jpg", IMREAD_UNCHANGED);
-		trainingImages.push_back(tmpImg);
-	}
-	for (int i = 0; i < 3; i++)
-	{
-		labels.push_back(-1);
-		Mat tmpImg = imread("./Training/red" + to_string(i) + ".jpg", IMREAD_UNCHANGED);
-		trainingImages.push_back(tmpImg);
-	}
-
-	/*
-	vector<vector<Mat>> trainingChannels;
-	for (int i = 0; i < trainingImages.size(); i++)
-	{
-		vector<Mat> channels;
-
-		Mat ch0 = getChannel(trainingImages[i], 0);
-		Mat ch1 = getChannel(trainingImages[i], 1);
-		Mat ch2 = getChannel(trainingImages[i], 2);
-
-		
-
-		channels.push_back(getHist(ch0, 32));
-		channels.push_back(getHist(ch1, 32));
-		channels.push_back(getHist(ch2, 32));
-
-		trainingChannels.push_back(channels);
-	}
-	*/
-
-	Mat labelsMat(labels.size(), 1, CV_32SC1);
-	for (int i = 0; i < labels.size(); i++)
-	{
-		labelsMat.at<int>(i,0) = labels[i];
-	}
-	Mat trainingDataMat(trainingImages.size(), 6 * 32, CV_32FC1);
-	for (int i = 0; i < labels.size(); i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			Mat ch = getChannel(trainingImages[i], j);
-			Mat hs = get8bitHist(ch, 32);
-
-			for (int k = 0; k < 32; k++)
-			{
-				trainingDataMat.at<float>(i, j * 32 + k) = (float)hs.at<float>(k, 0);
-			}
-		}
-	}
-
-	Ptr<TrainData> tData = TrainData::create(trainingDataMat, SampleTypes::ROW_SAMPLE, labelsMat);
-
-	Ptr<RTrees> rt = RTrees::create();
-
-	rt->setMaxDepth(5);
-	rt->setMinSampleCount(5);
-	rt->setMaxCategories(10);
-
-	rt->setCalculateVarImportance(false);
-	rt->setRegressionAccuracy(0.0f);
-	rt->setPriors(Mat());
-
-	rt->train(tData, 0);
-
-	Mat test = imread("./Training/blue0.jpg", IMREAD_UNCHANGED);
-
-	Mat ch0 = getChannel(test, 0);
-	Mat ch1 = getChannel(test, 1);
-	Mat ch2 = getChannel(test, 2);
-
-
-	Mat hn[3];
-	hn[0] = get8bitHist(ch0, 32);
-	hn[1] = get8bitHist(ch1, 32);
-	hn[2] = get8bitHist(ch2, 32);
-
-	cout << hn[0] << endl << endl;
-	cout << hn[1] << endl << endl;
-	cout << hn[2] << endl << endl;
-
-	Mat h123(hn[0].rows * 3, 1, CV_32FC1);
-
-	
-	for (int i = 0; i < 3; i++)
-	{
-		for (int j = 0; j < hn[0].rows; j++)
-		{
-			h123.at<float>(hn[0].rows * i + j, 0) = hn[i].at<float>(j, 0);
-		}
-	}
-
-	float predictResponse;
-	predictResponse = rt->predict(h123);
-
-
-	cout << "Predict 1: " << predictResponse << endl;
-
-	cout << "Tjodilo" << endl;
-}
 
 void rtrees()
 {
@@ -1314,6 +1261,14 @@ Mat get8bitHist(Mat img1D, int numLevels, int minRange, int maxRange)
 	return hist2;
 }
 
+
+/**Makes a histogram of chosen channel of a HSV image.
+*
+* Input1: The image whose channel is going to be extracted.
+* Input2: Number of the channel that is going to be extracted.
+* InputX: ...
+* Output: The requested channel of the input image.
+*/
 Mat getHsvHist(Mat img1D, int type, int numLevels, int minRange, int maxRange)
 {
 	MatND hist;
@@ -1343,6 +1298,12 @@ Mat getHsvHist(Mat img1D, int type, int numLevels, int minRange, int maxRange)
 	return hist;
 }
 
+/**Recovers the requsted channel from an image.
+ *
+ * Input1: The image whose channel is going to be extracted.
+ * Input2: Number of the channel that is going to be extracted.
+ * Output: The requested channel of the input image.
+ */
 Mat getChannel(Mat src, int channel)
 {
 	Mat *ch = (Mat*)calloc(4, sizeof(Mat));

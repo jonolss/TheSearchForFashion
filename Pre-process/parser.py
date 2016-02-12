@@ -17,11 +17,11 @@ def main():
 			filterValid()
 		elif sys.argv[1] == '-u': #Filers away products with same image as another. Reads input and writes to output stream.
 			filterUnique()
-		elif sys.argv[1] == '-t':
+		elif sys.argv[1] == '-t': #Reserved for development tests.
 			tests()
-		elif sys.argv[1] == '--combine':
+		elif sys.argv[1] == '--combine': #Concats the data of file1 to the end of file2. Needs path to file1 and path2.
 			combine()
-		elif sys.argv[1] == '--shuffle':
+		elif sys.argv[1] == '--shuffle': #Shuffles inputed data. Reads input and writes to output stream.
 			shuffle()
 		elif sys.argv[1] == '--makeReady': #Returns only the data needed for the machine training. Reads input and writes to output stream.
 			makeReady()
@@ -29,7 +29,7 @@ def main():
 			downloadImages()
 		elif sys.argv[1] == '-c':
 			print("WIP")
-		elif sys.argv[1] == '--fc': #Counts the amount of sleeve types, 0 unknown, 1 sleevless, 2 short, 3 long
+		elif sys.argv[1] == '--fc': #Counts the amount of sleeve types, 0 unknown, 1 sleevless, 2 short, 3 long. Reads from input and writes to output stream.
 			featCheck = [0,0,0,0];
 			for line in sys.stdin:
 				featCheck[parseDetails(getDetails(line))[0]+1] += 1
@@ -96,19 +96,17 @@ def tests():
 	print("kov")
 	
 def shuffle():
-	filepath = sys.argv[2]
-	file = open(filepath, 'r+')
-	
 	tmp = []
-	for line in file.read().split('\n'):
+
+	for line in sys.stdin:
 		if(line != ""):
 			tmp.append(line)
 	
 	random.shuffle(tmp)
 	
-	file.seek(0,0)
-	file.write("\n".join(tmp))
-	file.close()
+	for line in tmp:
+		line = line.replace('\n','')
+		print (line)
 	
 	
 def combine():
@@ -126,7 +124,6 @@ def combine():
 	
 	
 def makeReady():
-	verifyCounter = 100
 	for line in sys.stdin:
 		if(getTypeEng(line) != "Bangle"):
 			id         = getProductId(line)
@@ -134,15 +131,9 @@ def makeReady():
 			color      = getColor(line)
 			clothType  = getTypeEng(line)
 			sleeveType = parseDetails(getDetails(line))
-			
-			if verifyCounter > 0:
-				verifyCounter = verifyCounter - 1
-				
-				header = ('#V' + str(len(id)) + ';' + str(len(path)) + ';' + str(len(color)) + 
-						  ';' + str(len(clothType)) + ';' + str(len(sleeveType)) + '#')
-			else:
-				header = ('#T' + str(len(id)) + ';' + str(len(path)) + ';' + str(len(color)) + 
-						  ';' + str(len(clothType)) + ';' + str(len(sleeveType)) + '#')
+
+			header = ('#T' + str(len(id)) + ';' + str(len(path)) + ';' + str(len(color)) + 
+					  ';' + str(len(clothType)) + ';' + str(len(sleeveType)) + '#')
 			
 			output = header + id + path + color + clothType + sleeveType
 			print(output)
@@ -271,6 +262,7 @@ def getTypeEng(input):
 		patternBlazer     = re.compile('(blazer)')
 		patternBlouse     = re.compile('(blouse)')
 		patternCamisole   = re.compile('(camisole)')
+		patternKaftan     = re.compile('(kaftan)')
 		patternTunic      = re.compile('(tunic)')
 		patternSinglet    = re.compile('(singlet)')
 		patternTShirt     = re.compile('(t-shirt)')
@@ -299,6 +291,8 @@ def getTypeEng(input):
 		if(patternCamisole.search(input)):
 			return ("Camisole")
 		if(patternTunic.search(input)):
+			return ("Tunic")
+		if(patternKaftan.search(input)):
 			return ("Tunic")
 		if(patternSinglet.search(input)):
 			return ("Singlet")
