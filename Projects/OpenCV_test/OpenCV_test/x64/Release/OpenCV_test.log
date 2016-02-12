@@ -1,6 +1,15 @@
-﻿  Generating code
-  1 of 78 functions ( 1.3%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    7 functions had inline decision re-evaluated but remain unchanged
+﻿  ClothArticle.cpp
+ClothArticle.cpp(251): warning C4102: 'defualt': unreferenced label
+  Main.cpp
+Main.cpp(822): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+Main.cpp(838): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+Main.cpp(956): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+Main.cpp(961): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  Utilities.cpp
+  Generating code
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(254): warning C4715: 'to_string': not all control paths return a value
+  811 of 811 functions (100.0%) were compiled, the rest were copied from previous compilation.
+    758 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\documents\visual studio 2015\Projects\OpenCV_test\x64\Release\OpenCV_test.exe
+  OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Release\OpenCV_test.exe

@@ -5,6 +5,9 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <queue>
+#include <tuple> 
+
 #include <opencv/cv.hpp >
 
 #include <opencv2/core.hpp>
@@ -45,6 +48,12 @@ void Change2016(string filename, string testType);
 void tester_SVM_vs_RF(string filename, string testType);
 vector<float> createlocalEdgeImageHist(Mat edges, int size);
 float calcEuclDist(Mat fVec1, Mat fVec2);
+void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
+Mat createFeatureVector(ClothArticle* input, string testType);
+Ptr<SVM> makeSVMModel(vector<ClothArticle*> input, string testType);
+Ptr<RTrees> makeRTModel(vector<ClothArticle*> input, string testType);
+vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArticle* query, int n, string testType);
+
 
 int main(int argc, char** argv)
 {
@@ -72,14 +81,18 @@ int main(int argc, char** argv)
 
 	//Change2016("rBoS.txt", "Color");
 
-	svm();
+	//svm();
 
 	//tester_SVM_vs_RF("rAll.txt", "ClothingType");
+
+	testModelWithImage("rAll.txt", "black0.jpg", "Color", false);
 
 	return 0;
 }
 
-void testModelWithImage(string trainingFilename, string testFilename)
+
+
+void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel)
 {
 	ifstream trainingFile(trainingFilename, ios::in);
 
@@ -92,27 +105,104 @@ void testModelWithImage(string trainingFilename, string testFilename)
 	}
 	trainingFile.close();
 
-	Ptr<SVM> model = makeSVMModel(allArticles, "ClothingType");
+	Ptr<SVM> model;
+	if(!loadModel)
+	{
+		model = makeSVMModel(allArticles, testType);
+		if (testType == "Color")
+			model->save("ColorModel.xml");
+		else if (testType == "ClothingType")
+			model->save("ClTypeModel.xml");
+	}
+	else
+	{
+		if (testType == "Color")
+			model = Algorithm::load<SVM>("ColorModel.xml");
+		else if (testType == "ClothingType")
+			model = Algorithm::load<SVM>("ClTypeModel.xml");
+	}
 
-	ifstream testFile(testFilename, ios::in);
+	ClothArticle* testItem = new ClothArticle('T', "Test0", testFilename, "Gra", "Top", -1);
 
-	getline(testFile, line);
-	ClothArticle* testItem = inputParser(line); // <-- kommer inte funka för den vill ha en textfil (rAll.txt), men här ska det endast vara en "plain" bildfil
-
-	testFile.close();
-
-	Mat testFeatVec = createFeatureVector(testItem, "ClothingType");
+	Mat testFeatVec = createFeatureVector(testItem, testType);
 
 	float predictResponse = model->predict(testFeatVec);
 
 	cout << "Support Vector Machine" << endl;
-	cout << "Predicted: " << to_string(art_clType((int)predictResponse)) << endl;
+	if(testType == "Color")
+	{
+		cout << "Predicted: " << to_string(art_color((int)predictResponse)) << endl;
+		testItem->setColor(art_color((int)predictResponse));
+	}
+	else if (testType == "ClothingType")
+	{
+		cout << "Predicted: " << to_string(art_clType((int)predictResponse)) << endl;
+		testItem->setClType(art_clType((int)predictResponse));
+	}
 
-	namedWindow("Test Image", 1);
-	imshow("Test Image", testItem->getImage());
+	vector<string> nn = findClosestNeighbours(allArticles, testItem, 7, testType);
+
+	namedWindow("Query", 1);
+	imshow("Query", testItem->getImage());
+
+	for (int i = 0; i < nn.size(); i++)
+	{
+		for (int j = 0; j < allArticles.size(); j++)
+		{
+			if(nn[i] == allArticles[j]->getId())
+			{
+				namedWindow("Result # " + to_string(i+1), 1);
+				imshow("Result # " + to_string(i+1), allArticles[j]->getImage());
+			}
+		}
+	}
+
 
 	waitKey(0);
 }
+
+struct GreatTuple
+{
+	bool operator()(const tuple<float, string>& lhs, const tuple<float, string>& rhs) const
+	{
+		return get<0>(lhs) > get<0>(rhs);
+	}
+};
+
+vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArticle* query, int n, string testType)
+{
+	priority_queue< tuple<float, string>, vector<tuple<float, string>>, GreatTuple > priQueue;
+
+	Mat queryFeat = createFeatureVector(query, "Color+ClothingType");
+
+	for (int i = 0; i < allArticles.size(); i++)
+	{
+		ClothArticle* curr = allArticles[i];
+		if(testType == "ClothingType" && curr->getClType() == query->getClType() || testType == "Color" && curr->getColor() == query->getColor())
+		{
+			Mat currFeat = createFeatureVector(curr, "Color+ClothingType");
+			float dist = calcEuclDist(queryFeat, currFeat);
+
+			tuple<float, string> currPriEntry;
+			currPriEntry = make_tuple(dist, curr->getId());
+
+			priQueue.push(currPriEntry);
+		}
+	}
+
+	vector<string> topResults;
+
+	for (int i = 0; i < n; i++)
+	{
+		topResults.push_back(get<1>(priQueue.top()));
+		cout << get<0>(priQueue.top()) << endl;
+		priQueue.pop();
+	}
+
+	return topResults;
+}
+
+
 
 Mat createFeatureVector(ClothArticle* input, string testType)
 {
@@ -142,7 +232,7 @@ Mat createFeatureVector(ClothArticle* input, string testType)
 
 			for (int k = 0; k < 32; k++)
 			{
-				fVec.at<float>(nhs.rows * j + k, 0) = (float)nhs.at<float>(k, 0);
+				fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
 			}
 		}
 	}
@@ -164,7 +254,7 @@ Mat createFeatureVector(ClothArticle* input, string testType)
 
 		for (int j = 0; j < tmp.size(); j++)
 		{
-			fVec.at<float>(j, 0) = (float)tmp.at(j);
+			fVec.at<float>(0, j) = (float)tmp.at(j);
 		}
 
 		imgBlur = preformGaussianBlur(binary);
@@ -174,7 +264,65 @@ Mat createFeatureVector(ClothArticle* input, string testType)
 
 		for (int j = 0; j < tmp.size(); j++)
 		{
-			fVec.at<float>(j + 100, 0) = (float)tmp.at(j);
+			fVec.at<float>(0, j + 100) = (float)tmp.at(j);
+		}
+
+	}
+	else if (testType == "Color+ClothingType" || testType == "ClothingType+Color")
+	{
+		fVec = Mat(1, 2 * 100 + 32 * 6, CV_32FC1);
+		
+		Mat imgGray;
+		cvtColor(input->getImage(), imgGray, COLOR_BGR2GRAY);
+		Mat binary;
+
+		threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
+
+		binary = binary * 255;
+
+		Mat imgBlur = preformGaussianBlur(imgGray);
+		Mat edges = preformCanny(imgBlur);
+
+		vector<float> tmp = createlocalEdgeImageHist(edges, 30);
+
+		for (int j = 0; j < tmp.size(); j++)
+		{
+			fVec.at<float>(0, j) = (float)tmp.at(j);
+		}
+
+		imgBlur = preformGaussianBlur(binary);
+		edges = preformCanny(imgBlur);
+
+		tmp = createlocalEdgeImageHist(edges, 30);
+
+		for (int j = 0; j < tmp.size(); j++)
+		{
+			fVec.at<float>(0, j + 100) = (float)tmp.at(j);
+		}
+
+		Mat hsvImg;
+		cvtColor(input->getImage(), hsvImg, COLOR_BGR2HSV);
+
+		for (int j = 0; j < 6; j++)
+		{
+			Mat ch, hs, nhs;
+			if (j<3)
+			{
+				ch = getChannel(input->getImage(), j);
+				hs = get8bitHist(ch, 32);
+				nhs = normalizeHist(hs);
+			}
+			else
+			{
+				ch = getChannel(hsvImg, j - 3);
+				hs = getHsvHist(ch, j - 3, 32);
+				nhs = normalizeHist(hs);
+			}
+
+			for (int k = 0; k < 32; k++)
+			{
+				fVec.at<float>(0, nhs.rows * j + k + 200) = (float)nhs.at<float>(k, 0);
+			}
 		}
 
 	}
@@ -232,7 +380,7 @@ void tester_SVM_vs_RF(string filename, string testType)
 
 	infile.close();
 	
-	int totSize = allArticles.size();
+	int totSize = (int)allArticles.size();
 	int partSize = totSize / 10;
 
 
@@ -617,15 +765,15 @@ float calcEuclDist(Mat fVec1, Mat fVec2)
 	if (fVec1.size() != fVec2.size())
 		return -1.0f;
 
-	float dist = 0;;
+	float dist = 0;
 	for (int i = 0; i < fVec1.rows; i++)
 	{
 		for (int j = 0; j < fVec1.cols; j++)
 		{
-			dist = fVec1.at<float>(i, j) - fVec2.at<float>(i, j);
+			dist += powf((fVec1.at<float>(i, j) - fVec2.at<float>(i, j)),2);
 		}
 	}
-	return dist;
+	return sqrt(dist);
 }
 
 vector<float> createlocalEdgeImageHist(Mat edges, int size)
@@ -684,11 +832,8 @@ Ptr<TrainData> createTrainingData(vector<ClothArticle*> input, string classifier
 	}
 	else if (classifierGroup == "ClothingType")
 	{
-		dataMatFeature = 100 * 2;//trainingImages[0].size().area();
+		dataMatFeature = 100 * 2;
 	}
-
-	cout << trainingImages[0].size() << endl;
-	cout << dataMatFeature << endl;
 
 	Mat trainingDataMat(trainingImages.size(), dataMatFeature, CV_32FC1);
 	for (int i = 0; i < labels.size(); i++)
@@ -754,17 +899,6 @@ Ptr<TrainData> createTrainingData(vector<ClothArticle*> input, string classifier
 				trainingDataMat.at<float>(i, j+100) = (float)tmp.at(j);
 			}
 
-
-
-			/*
-			for (int j = 0; j < edges.rows; j++)
-			{
-				for (int k = 0; k < edges.cols; k++)
-				{
-					trainingDataMat.at<float>(i, j * edges.cols + k) = (float)edges.at<unsigned char>(j, k);
-				}
-			}
-			*/
 		}
 	}
 

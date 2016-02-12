@@ -41,7 +41,7 @@ class ClothArticle
 {
 private:
 	Mat image;
-	char inputType;
+	char inputType;  // <- Will maybe be deleted.
 	string id;
 	art_color color;
 	art_clType clType;
@@ -54,6 +54,10 @@ public:
 
 	void showImage();
 	void filterAlphaArtifacts(Mat *img);
+
+	void setColor(art_color color);
+	void setClType(art_clType clType);
+	void setSleeveType(art_sleeveType sleeveType);
 
 	char           getInputType();
 	string         getId();

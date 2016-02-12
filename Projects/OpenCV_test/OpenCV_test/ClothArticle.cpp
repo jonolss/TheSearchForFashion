@@ -2,7 +2,7 @@
 
 ClothArticle::ClothArticle(char inputType, string id, string path, string color, string clType, int sleeveType)
 {
-	this->inputType = inputType;
+	this->inputType = inputType; 
 	this->id = id;
 	this->color = checkColor(color);
 	this->clType = checkClType(clType);
@@ -63,9 +63,13 @@ string ClothArticle::getId() { return id; }
 
 Mat ClothArticle::getImage() { return image; }
 
-art_color ClothArticle::getColor() { return color; }
-art_clType ClothArticle::getClType() { return clType; }
+art_color ClothArticle::getColor()           { return color; }
+art_clType ClothArticle::getClType()         { return clType; }
 art_sleeveType ClothArticle::getSleeveType() { return sleeveType; }
+
+void ClothArticle::setColor(art_color color) { this->color = color; }
+void ClothArticle::setClType(art_clType clType) { this->clType = clType; }
+void ClothArticle::setSleeveType(art_sleeveType sleeveType) { this->sleeveType = sleeveType; }
 
 vector<int> ClothArticle::getClasses()
 {
