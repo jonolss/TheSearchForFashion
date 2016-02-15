@@ -149,10 +149,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClothArticle.cpp" />
+    <ClCompile Include="ImageSearcher.cpp" />
+    <ClCompile Include="ImageUtilities.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothArticle.h" />
+    <ClInclude Include="ImageSearcher.h" />
+    <ClInclude Include="ImageUtilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

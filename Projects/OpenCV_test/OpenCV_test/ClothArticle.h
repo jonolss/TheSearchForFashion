@@ -2,11 +2,14 @@
 #ifndef CLOTHARTICLE_H
 #define CLOTHARTICLE_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
-#endif
+#include <fstream>
+
+#include "ImageUtilities.h"
+
 
 
 using namespace std;
@@ -37,11 +40,29 @@ enum art_sleeveType
 };
 
 
+class ImageFeatures
+{
+private:
+	Mat hsvHists[3];
+	Mat rgbHists[3];
+	Mat edgeHists[2];
+public:
+	ImageFeatures();
+	ImageFeatures(Mat image);
+	~ImageFeatures();
+
+	Mat getRGBHist(int ch);
+	Mat getHSVHist(int ch);
+	Mat getEdgeHist(int n);
+
+
+};
+
 class ClothArticle
 {
 private:
-	Mat image;
-	char inputType;  // <- Will maybe be deleted.
+	string path;
+	ImageFeatures imgFeats;
 	string id;
 	art_color color;
 	art_clType clType;
@@ -49,22 +70,19 @@ private:
 
 	Mat resizeImg(Mat input);
 public:
-	ClothArticle(char inputType, string id, string path, string color, string clType, int sleeveType);
+	ClothArticle(string id, string path, string color, string clType, int sleeveType);
 	~ClothArticle();
-
-	void showImage();
-	void filterAlphaArtifacts(Mat *img);
 
 	void setColor(art_color color);
 	void setClType(art_clType clType);
 	void setSleeveType(art_sleeveType sleeveType);
 
-	char           getInputType();
 	string         getId();
 	Mat            getImage();
 	art_color      getColor();
 	art_clType     getClType();
 	art_sleeveType getSleeveType();
+	ImageFeatures  getImgFeats();
 
 	vector<int> getClasses();
 };
@@ -77,5 +95,7 @@ string to_string(art_color val);
 string to_string(art_clType val);
 string to_string(art_sleeveType val);
 
-
+vector<ClothArticle *> readCatalogeFromFile(string path);
 ClothArticle *inputParser(string input);
+
+#endif

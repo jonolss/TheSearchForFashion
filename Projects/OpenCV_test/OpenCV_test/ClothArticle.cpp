@@ -1,18 +1,76 @@
 #include "ClothArticle.h"
 
-ClothArticle::ClothArticle(char inputType, string id, string path, string color, string clType, int sleeveType)
+
+
+ImageFeatures::ImageFeatures()
 {
-	this->inputType = inputType; 
+	;
+}
+
+ImageFeatures::ImageFeatures(Mat image)
+{
+	Mat hsvImg;
+	cvtColor(image, hsvImg, COLOR_BGR2HSV);
+
+	for (int i = 0; i < 3; i++)
+	{
+		Mat ch, hs;
+		ch = getChannel(hsvImg, i);
+		hs = getHsvHist(ch, i, 32);
+		hsvHists[i] = normalizeHist(hs);
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		Mat ch, hs;
+		ch = getChannel(image, i);
+		hs = get8bitHist(ch, 32);
+		rgbHists[i] = normalizeHist(hs);
+	}
+
+	Mat imgGray;
+	cvtColor(image, imgGray, COLOR_BGR2GRAY);
+	
+	Mat binary;
+	threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
+	binary = binary * 255;
+
+	Mat imgBlur = preformGaussianBlur(imgGray);
+	Mat edges = preformCanny(imgBlur);
+
+	edgeHists[0] = createlocalEdgeImageHist(edges, 30);
+
+	imgBlur = preformGaussianBlur(binary);
+	edges = preformCanny(imgBlur);
+
+	edgeHists[1] = createlocalEdgeImageHist(/*binary*/edges, 30);
+
+	//fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
+}
+
+ImageFeatures::~ImageFeatures(){}
+
+Mat ImageFeatures::getRGBHist(int ch) { return rgbHists[ch]; }
+Mat ImageFeatures::getHSVHist(int ch) { return hsvHists[ch]; }
+Mat ImageFeatures::getEdgeHist(int n) { return edgeHists[n]; }
+
+
+ClothArticle::ClothArticle(string id, string path, string color, string clType, int sleeveType)
+{
 	this->id = id;
 	this->color = checkColor(color);
 	this->clType = checkClType(clType);
 	this->sleeveType = checkSleeveType(sleeveType);
+	this->path = path;
 	Mat tmp = imread(path, IMREAD_UNCHANGED);
 	if (path.find(".png") != string::npos)
 	{
 		filterAlphaArtifacts(&tmp);
 	}
-	image = resizeImg(tmp);
+	Mat tmp2 = resizeImg(tmp);
+
+	this->imgFeats = ImageFeatures(tmp2);
+
 }
 
 Mat ClothArticle::resizeImg(Mat input)
@@ -33,35 +91,20 @@ Mat ClothArticle::resizeImg(Mat input)
 	return out;
 }
 
-void ClothArticle::filterAlphaArtifacts(Mat *img)
-{
-	Mat *ch = (Mat*)calloc(4, sizeof(Mat));
-
-	split(*img, ch);
-	Mat ch1 = ch[3];
-
-	for (int i = 0; i < ch1.rows; i++)
-	{
-		for (int j = 0; j < ch1.cols; j++)
-		{
-			if (ch1.at<unsigned char>(i, j) == 0)
-			{
-				img->at<Vec4b>(i, j) = Vec4b(255, 255, 255, 0);
-			}
-		}
-	}
-	free(ch);
-}
-
 ClothArticle::~ClothArticle() {}
-
-void ClothArticle::showImage() { imshow("Article", image); }
-
-char ClothArticle::getInputType() { return inputType; }
 
 string ClothArticle::getId() { return id; }
 
-Mat ClothArticle::getImage() { return image; }
+Mat ClothArticle::getImage() 
+{ 
+	Mat tmp = imread(path, IMREAD_UNCHANGED);
+	if (path.find(".png") != string::npos)
+	{
+		filterAlphaArtifacts(&tmp);
+	}
+	Mat tmp2 = resizeImg(tmp);
+	return tmp2;
+}
 
 art_color ClothArticle::getColor()           { return color; }
 art_clType ClothArticle::getClType()         { return clType; }
@@ -70,6 +113,8 @@ art_sleeveType ClothArticle::getSleeveType() { return sleeveType; }
 void ClothArticle::setColor(art_color color) { this->color = color; }
 void ClothArticle::setClType(art_clType clType) { this->clType = clType; }
 void ClothArticle::setSleeveType(art_sleeveType sleeveType) { this->sleeveType = sleeveType; }
+
+ImageFeatures ClothArticle::getImgFeats() { return imgFeats; }
 
 vector<int> ClothArticle::getClasses()
 {
@@ -269,10 +314,26 @@ string to_string(art_sleeveType val)
 	}
 }
 
+vector<ClothArticle *> readCatalogeFromFile(string path)
+{
+	ifstream inputFile(path, ios::in);
+
+	vector<ClothArticle*> allArticles;
+
+	string line;
+	while (getline(inputFile, line))
+	{
+		allArticles.push_back(inputParser(line));
+	}
+	inputFile.close();
+
+	return allArticles;
+}
+
 ClothArticle *inputParser(string input)
 {
 
-	//#V7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
+	//#7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
 	string inp = "#V7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1";
 
 	string::iterator it = input.begin();
@@ -281,9 +342,7 @@ ClothArticle *inputParser(string input)
 		cout << "Corrupt start of header.";
 		return NULL;
 	}
-	//#|V7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
-	char inputType = *it++;
-	//#V|7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
+	//#|7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
 
 	string buff = "";
 	for (; *it != ';'; it++)
@@ -292,7 +351,7 @@ ClothArticle *inputParser(string input)
 	}
 	int idLength = stoi(buff);
 	it++;
-	//#V7;|20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
+	//#7;|20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
 
 	buff = "";
 	for (; *it != ';'; it++)
@@ -301,7 +360,7 @@ ClothArticle *inputParser(string input)
 	}
 	int pathLength = stoi(buff);
 	it++;
-	//#V7;20;|3;6;2#6567570./images/6567570.jpgVitBlouse-1
+	//#7;20;|3;6;2#6567570./images/6567570.jpgVitBlouse-1
 
 	buff = "";
 	for (; *it != ';'; it++)
@@ -310,7 +369,7 @@ ClothArticle *inputParser(string input)
 	}
 	int colorLength = stoi(buff);
 	it++;
-	//#V7;20;3;|6;2#6567570./images/6567570.jpgVitBlouse-1
+	//#7;20;3;|6;2#6567570./images/6567570.jpgVitBlouse-1
 
 	buff = "";
 	for (; *it != ';'; it++)
@@ -319,7 +378,7 @@ ClothArticle *inputParser(string input)
 	}
 	int clTypeLength = stoi(buff);
 	it++;
-	//#V7;20;3;6;|2#6567570./images/6567570.jpgVitBlouse-1
+	//#7;20;3;6;|2#6567570./images/6567570.jpgVitBlouse-1
 
 	buff = "";
 	for (; *it != '#'; it++)
@@ -328,7 +387,7 @@ ClothArticle *inputParser(string input)
 	}
 	int sleeveTypeLength = stoi(buff);
 	it++;
-	//#V7;20;3;6;2#|6567570./images/6567570.jpgVitBlouse-1
+	//#7;20;3;6;2#|6567570./images/6567570.jpgVitBlouse-1
 
 	buff = "";
 	for (int i = 0; i < idLength; i++, it++)
@@ -365,5 +424,5 @@ ClothArticle *inputParser(string input)
 	}
 	int sleeveType = stoi(buff);
 
-	return new ClothArticle(inputType, id, path, color, clType, sleeveType);
+	return new ClothArticle(id, path, color, clType, sleeveType);
 }
