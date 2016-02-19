@@ -149,14 +149,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClothArticle.cpp" />
+    <ClCompile Include="FrontEnd.cpp" />
     <ClCompile Include="ImageSearcher.cpp" />
-    <ClCompile Include="ImageUtilities.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="ImageUtilities.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothArticle.h" />
+    <ClInclude Include="FrontEnd.h" />
     <ClInclude Include="ImageSearcher.h" />
     <ClInclude Include="ImageUtilities.h" />
   </ItemGroup>

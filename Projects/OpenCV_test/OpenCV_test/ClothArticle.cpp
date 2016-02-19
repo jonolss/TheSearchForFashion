@@ -1,20 +1,25 @@
 #include "ClothArticle.h"
 
 
-
+/**Standard constructor.
+*
+*/
 ImageFeatures::ImageFeatures()
 {
 	;
 }
 
-ImageFeatures::ImageFeatures(Mat image)
+/**Constructor for making ImageFeatures.
+* \param iamge The image who's features is going to be extracted.
+*/
+ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 {
-	Mat hsvImg;
-	cvtColor(image, hsvImg, COLOR_BGR2HSV);
+	cv::Mat hsvImg;
+	cv::cvtColor(image, hsvImg, cv::COLOR_BGR2HSV);
 
 	for (int i = 0; i < 3; i++)
 	{
-		Mat ch, hs;
+		cv::Mat ch, hs;
 		ch = getChannel(hsvImg, i);
 		hs = getHsvHist(ch, i, 32);
 		hsvHists[i] = normalizeHist(hs);
@@ -22,21 +27,46 @@ ImageFeatures::ImageFeatures(Mat image)
 
 	for (int i = 0; i < 3; i++)
 	{
-		Mat ch, hs;
+		cv::Mat ch, hs;
 		ch = getChannel(image, i);
 		hs = get8bitHist(ch, 32);
 		rgbHists[i] = normalizeHist(hs);
 	}
 
-	Mat imgGray;
-	cvtColor(image, imgGray, COLOR_BGR2GRAY);
+	cv::Mat imgGray;
+	cv::cvtColor(image, imgGray, cv::COLOR_BGR2GRAY);
 	
-	Mat binary;
-	threshold(imgGray, binary, 248, THRESH_BINARY_INV, THRESH_BINARY);
-	binary = binary * 255;
+	cv::Mat binary;
+	if (png)
+	{
+		cv::Mat *ch = (cv::Mat*)calloc(4, sizeof(cv::Mat));
 
-	Mat imgBlur = preformGaussianBlur(imgGray);
-	Mat edges = preformCanny(imgBlur);
+		cv::split(image, ch);
+		cv::Mat alpha = ch[3];
+		cv::threshold(alpha, binary, 254, cv::THRESH_BINARY_INV, cv::THRESH_BINARY);
+
+		for (int i = 0; i < 4; i++)
+		{
+
+			ch[i].release();
+		}
+		free(ch);
+		binary = binary * 255;
+
+		//imshow("Alpa", alpha);
+		
+	}
+	else
+	{
+		cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY);
+		binary = binary * 255;
+	}
+	//imshow("Binär", binary);
+	//waitKey(0);
+	
+	
+	cv::Mat imgBlur = preformGaussianBlur(imgGray);
+	cv::Mat edges = preformCanny(imgBlur);
 
 	edgeHists[0] = createlocalEdgeImageHist(edges, 30);
 
@@ -48,13 +78,39 @@ ImageFeatures::ImageFeatures(Mat image)
 	//fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
 }
 
+/**Standard desturctor.
+*
+*/
 ImageFeatures::~ImageFeatures(){}
 
-Mat ImageFeatures::getRGBHist(int ch) { return rgbHists[ch]; }
-Mat ImageFeatures::getHSVHist(int ch) { return hsvHists[ch]; }
-Mat ImageFeatures::getEdgeHist(int n) { return edgeHists[n]; }
+/**Returns the n'th rgb histogram of the article.
+*
+* \param n Channel of rgb histograms.
+* \return The histogram of chosen rgb channel.
+*/
+cv::Mat ImageFeatures::getRGBHist(int ch) { return rgbHists[ch]; }
+/**Returns the n'th hsv histogram of the article.
+*
+* \param n Channel of hsv histograms.
+* \return The histogram of chosen hsv channel.
+*/
+cv::Mat ImageFeatures::getHSVHist(int ch) { return hsvHists[ch]; }
+/**Returns the n'th edge histogram of the article.
+*
+* \param n Index of edge histograms.
+* \return The chosen edge histogram.
+*/
+cv::Mat ImageFeatures::getEdgeHist(int n) { return edgeHists[n]; }
 
 
+/**Constructor for making a ClothArticle.
+*
+* \param id Id of the article.
+* \param path Path to the image of the article.
+* \param color Color of the article.
+* \param clType Clothing type of the article.
+* \param sleeveType Sleeve type of the article.
+*/
 ClothArticle::ClothArticle(string id, string path, string color, string clType, int sleeveType)
 {
 	this->id = id;
@@ -62,60 +118,92 @@ ClothArticle::ClothArticle(string id, string path, string color, string clType, 
 	this->clType = checkClType(clType);
 	this->sleeveType = checkSleeveType(sleeveType);
 	this->path = path;
-	Mat tmp = imread(path, IMREAD_UNCHANGED);
-	if (path.find(".png") != string::npos)
-	{
+	cv::Mat tmp = cv::imread(path, cv::IMREAD_UNCHANGED);
+	bool png = path.find(".png") != string::npos;
+	if (png)
 		filterAlphaArtifacts(&tmp);
-	}
-	Mat tmp2 = resizeImg(tmp);
+	cv::Mat tmp2 = resizeImg(tmp,300,300);
 
-	this->imgFeats = ImageFeatures(tmp2);
+	this->imgFeats = ImageFeatures(tmp2,png);
 
 }
 
-Mat ClothArticle::resizeImg(Mat input)
-{
-	Mat out(Size(300, 300), CV_8UC3);
-
-	int inpHt = input.size().height;
-	int inpWh = input.size().width;
-	if (inpHt > 300 || inpWh > 300)
-	{
-		resize(input, out, Size(300, 300), 0.0, 0.0, INTER_AREA);
-	}
-	else if (inpHt < 300 || inpWh < 300)
-	{
-		resize(input, out, Size(300, 300), 0.0, 0.0, INTER_LINEAR);
-	}
-
-	return out;
-}
-
+/**Standard desturctor.
+*
+*/
 ClothArticle::~ClothArticle() {}
 
+
+/**Returns the id of the article.
+*
+* \return Article's id.
+*/
 string ClothArticle::getId() { return id; }
 
-Mat ClothArticle::getImage() 
+/**Returns the path to the article's image.
+*
+* \return Path to article's image.
+*/
+string ClothArticle::getPath() { return path; }
+
+/**Returns the image of the article, by reading the image file. 
+*
+* \return The article's image.
+*/
+cv::Mat ClothArticle::getImage()
 { 
-	Mat tmp = imread(path, IMREAD_UNCHANGED);
+	cv::Mat tmp = cv::imread(path, cv::IMREAD_UNCHANGED);
 	if (path.find(".png") != string::npos)
 	{
 		filterAlphaArtifacts(&tmp);
 	}
-	Mat tmp2 = resizeImg(tmp);
+	cv::Mat tmp2 = resizeImg(tmp,300,300);
 	return tmp2;
 }
 
+
+/**Returns the article's type of color.
+*
+* \return The article's type of color.
+*/
 art_color ClothArticle::getColor()           { return color; }
+/**Returns the article's type of clothing.
+*
+* \return The article's type of clothing.
+*/
 art_clType ClothArticle::getClType()         { return clType; }
+/**Returns the article's type of sleve.
+*
+* \return The article's type of sleeve.
+*/
 art_sleeveType ClothArticle::getSleeveType() { return sleeveType; }
 
+/**Sets the article's type of color.
+*
+* \param color Type of color that is being set.
+*/
 void ClothArticle::setColor(art_color color) { this->color = color; }
+/**Sets the article's type of clothing.
+*
+* \param clType Type of clothing that is being set.
+*/
 void ClothArticle::setClType(art_clType clType) { this->clType = clType; }
+/**Sets the article's type of sleeve.
+*
+* \param sleeveType Type of sleeve that is being set.
+*/
 void ClothArticle::setSleeveType(art_sleeveType sleeveType) { this->sleeveType = sleeveType; }
 
+/**Returns the article's image features.
+*
+* \return ImageFeatures of the article.
+*/
 ImageFeatures ClothArticle::getImgFeats() { return imgFeats; }
 
+/**Returns the article's classes.
+*
+* \return A vector with the classes of the article.
+*/
 vector<int> ClothArticle::getClasses()
 {
 	vector<int> output;
@@ -126,6 +214,11 @@ vector<int> ClothArticle::getClasses()
 }
 
 
+/**Convert string to correspondant enumaral.
+*
+* \param input Inputed string.
+* \return The correspondant enumarale.
+*/
 art_color checkColor(string input)
 {
 	
@@ -168,6 +261,11 @@ art_color checkColor(string input)
 	return Vit;
 }
 
+/**Convert string to correspondant enumaral.
+*
+* \param input Inputed string.
+* \return The correspondant enumarale.
+*/
 art_clType checkClType(string input)
 {
 
@@ -204,6 +302,11 @@ art_clType checkClType(string input)
 	return Tunic;
 }
 
+/**Convert numerical value to correspondant enumaral.
+*
+* \param input Numerical value.
+* \return The correspondant enumarale.
+*/
 art_sleeveType checkSleeveType(int input)
 {
 	if (input == 0)
@@ -212,9 +315,14 @@ art_sleeveType checkSleeveType(int input)
 		return Short;
 	if (input == 2)
 		return Long;
-	return Unknown;
+	return NotKnown;
 }
 
+/**Convert enumaral value to string.
+*
+* \param val Enumaral value.
+* \return A string object containing the representation of val as a sequence of characters.
+*/
 string to_string(art_color val)
 {
 	switch (val)
@@ -259,6 +367,11 @@ string to_string(art_color val)
 			return "Invalid color value";
 	}
 }
+/**Convert enumaral value to string.
+*
+* \param val Enumaral value.
+* \return A string object containing the representation of val as a sequence of characters.
+*/
 string to_string(art_clType val)
 {
 	switch (val)
@@ -297,12 +410,17 @@ string to_string(art_clType val)
 			return "Invalid clothing type";
 	}
 }
+/**Convert enumaral value to string.
+*
+* \param val Enumaral value.
+* \return A string object containing the representation of val as a sequence of characters.
+*/
 string to_string(art_sleeveType val)
 {
 	switch (val)
 	{
-		case Unknown:
-			return "Unknown";
+		case NotKnown:
+			return "NotKnown";
 		case None:
 			return "None";
 		case Short:
@@ -314,6 +432,11 @@ string to_string(art_sleeveType val)
 	}
 }
 
+/**Reads and parses a cataloge file into a vector of ClothArticles.
+*
+* \param path Path to a cataloge file.
+* \return A vector of all ClothArticle in the cataloge.
+*/
 vector<ClothArticle *> readCatalogeFromFile(string path)
 {
 	ifstream inputFile(path, ios::in);
@@ -330,6 +453,11 @@ vector<ClothArticle *> readCatalogeFromFile(string path)
 	return allArticles;
 }
 
+/**Parse lines from a cataloge file into ClothArticles.
+*
+* \param input Line that is going to be parsed.
+* \return Resulting ClothArticle using parsed data.
+*/
 ClothArticle *inputParser(string input)
 {
 

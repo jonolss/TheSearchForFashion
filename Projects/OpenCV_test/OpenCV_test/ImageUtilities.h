@@ -6,17 +6,19 @@
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 
-using namespace cv;
+//using namespace cv;
 using namespace std;
 
-Mat getChannel(Mat src, int channel);
-Mat normalizeHist(Mat hist);
-Mat get8bitHist(Mat img1D, int numLevels = 256, int minRange = 0, int maxRange = 256);
-Mat getHsvHist(Mat img1D, int type, int numLevels = 32, int minRange = 0, int maxRange = 256);
-Mat preformGaussianBlur(Mat src);
-Mat preformCanny(Mat src);
-Mat createlocalEdgeImageHist(Mat edges, int size);
+cv::Mat resizeImg(cv::Mat input, int sizeX = 300, int sizeY = 300);
+cv::Mat getChannel(cv::Mat src, int channel);
+cv::Mat normalizeHist(cv::Mat hist);
+cv::Mat get8bitHist(cv::Mat img1D, int numLevels = 256, int minRange = 0, int maxRange = 256);
+cv::Mat getHsvHist(cv::Mat img1D, int type, int numLevels = 32, int minRange = 0, int maxRange = 256);
+cv::Mat preformGaussianBlur(cv::Mat src);
+cv::Mat preformCanny(cv::Mat src);
+cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size);
 
-void filterAlphaArtifacts(Mat *img);
+void filterAlphaArtifacts(cv::Mat *img);
+
 
 #endif

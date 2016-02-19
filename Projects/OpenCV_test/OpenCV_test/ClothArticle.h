@@ -13,7 +13,7 @@
 
 
 using namespace std;
-using namespace cv;
+//using namespace cv;
 
 enum art_color
 {
@@ -33,7 +33,7 @@ enum art_clType
 
 enum art_sleeveType
 {
-	Unknown = -1,
+	NotKnown = -1,
 	None = 0,
 	Short = 1,
 	Long = 2
@@ -43,17 +43,17 @@ enum art_sleeveType
 class ImageFeatures
 {
 private:
-	Mat hsvHists[3];
-	Mat rgbHists[3];
-	Mat edgeHists[2];
+	cv::Mat hsvHists[3];
+	cv::Mat rgbHists[3];
+	cv::Mat edgeHists[2];
 public:
 	ImageFeatures();
-	ImageFeatures(Mat image);
+	ImageFeatures(cv::Mat image, bool png);
 	~ImageFeatures();
 
-	Mat getRGBHist(int ch);
-	Mat getHSVHist(int ch);
-	Mat getEdgeHist(int n);
+	cv::Mat getRGBHist(int ch);
+	cv::Mat getHSVHist(int ch);
+	cv::Mat getEdgeHist(int n);
 
 
 };
@@ -68,7 +68,7 @@ private:
 	art_clType clType;
 	art_sleeveType sleeveType;
 
-	Mat resizeImg(Mat input);
+	
 public:
 	ClothArticle(string id, string path, string color, string clType, int sleeveType);
 	~ClothArticle();
@@ -78,7 +78,8 @@ public:
 	void setSleeveType(art_sleeveType sleeveType);
 
 	string         getId();
-	Mat            getImage();
+	string         getPath();
+	cv::Mat        getImage();
 	art_color      getColor();
 	art_clType     getClType();
 	art_sleeveType getSleeveType();
