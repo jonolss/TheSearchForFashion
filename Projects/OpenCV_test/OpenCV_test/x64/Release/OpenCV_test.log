@@ -1,15 +1,21 @@
 ﻿  ClothArticle.cpp
-ClothArticle.cpp(251): warning C4102: 'defualt': unreferenced label
+ClothArticle.cpp(409): warning C4102: 'defualt': unreferenced label
+  FrontEnd.cpp
+  ImageSearcher.cpp
+ImageSearcher.cpp(155): warning C4101: 'cAllMessages': unreferenced local variable
+ImageSearcher.cpp(397): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(402): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(396): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(465): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(470): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(464): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(805): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(821): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  ImageUtilities.cpp
   Main.cpp
-Main.cpp(822): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-Main.cpp(838): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-Main.cpp(956): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-Main.cpp(961): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-  Utilities.cpp
   Generating code
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(254): warning C4715: 'to_string': not all control paths return a value
-  811 of 811 functions (100.0%) were compiled, the rest were copied from previous compilation.
-    758 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  605 of 765 functions (79.1%) were compiled, the rest were copied from previous compilation.
+    139 functions were new in current compilation
+    26 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Release\OpenCV_test.exe

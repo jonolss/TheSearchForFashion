@@ -30,8 +30,16 @@ void svmANDrfTest(string filename, string testType);
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
 
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
+	LPTSTR kov = GetCommandLine();
+	wcout << kov << endl;
+	cout << argv[0] << endl;
+	if (string(argv[1]) == "-f")
+		frontend();
+	else if (string(argv[1]) == "-b")
+		backend("readyFile.xx", false);
+	
 	/*
 	if (argc != 2 && argc != 3)
 	{
@@ -49,11 +57,9 @@ int main(int argc, char** argv)
 
 	//svmANDrfTest("readyFile.xx", "ClothingType");
 
-	testModelWithImage("readyFile.xx", "hmtest2.jpg", "All", false);  //<-- Bör funka på dirren
+	//testModelWithImage("readyFile.xx", "lindextest0.png", "None", false);  //<-- Bör funka på dirren
 
-	//fast_test();
-
-	//sift_test();
+	
 	
 	/*
 	if (argc == 2)

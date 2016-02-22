@@ -1,9 +1,26 @@
 #include "ImageSearcher.h"
 
-/*
-LPTSTR SlotName = TEXT("\\\\.\\mailslot\\sample_mailslot"); 
+#define MODEL_COLOR_PATH  "ColorModel.xml"
+#define MODEL_CLTYPE_PATH "ClTypeModel.xml"
 
-BOOL WriteSlot(HANDLE hSlot, LPTSTR lpszMessage) // skickar meddelanden
+#define BACK_TO_FRONT_SLOT TEXT("\\\\.\\mailslot\\btfs_mailslot")
+#define FRONT_TO_BACK_SLOT TEXT("\\\\.\\mailslot\\ftbs_mailslot")
+
+#define MAXIMUM_SEARCH_HITS 20
+
+std::wstring s2ws(const std::string& s)
+{
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t* buf = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	std::wstring r(buf);
+	delete[] buf;
+	return r;
+}
+
+BOOL writeSlot(HANDLE hSlot, LPCWSTR lpszMessage) //skickar meddelanden
 {
 	BOOL fResult;
 	DWORD cbWritten;
@@ -16,59 +33,30 @@ BOOL WriteSlot(HANDLE hSlot, LPTSTR lpszMessage) // skickar meddelanden
 
 	if (!fResult)
 	{
+#ifdef _DEBUG
 		printf("WriteFile failed with %d.\n", GetLastError());
+#endif // !DEBUG
 		return FALSE;
 	}
-
+#ifdef _DEBUG
 	printf("Slot written to successfully.\n");
-
+#endif // !DEBUG
 	return TRUE;
 }
 
-*/
-
-
-LPTSTR SlotNameRet = TEXT("\\\\.\\mailslot\\sample_mailslot");
-
-BOOL WriteSlot(HANDLE hSlotRet, LPTSTR lpszMessageRet) //skickar meddelanden
-{
-	BOOL fResult;
-	DWORD cbWritten;
-
-	fResult = WriteFile(hSlotRet,
-		lpszMessageRet,
-		(DWORD)(lstrlen(lpszMessageRet) + 1)*sizeof(TCHAR),
-		&cbWritten,
-		(LPOVERLAPPED)NULL);
-
-	if (!fResult)
-	{
-		printf("WriteFile failed with %d.\n", GetLastError());
-		return FALSE;
-	}
-
-	printf("Slot written to successfully.\n");
-
-	return TRUE;
-}
-
-
-HANDLE hSlot;
-LPTSTR SlotName = TEXT("\\\\.\\mailslot\\sample_mailslot");
-
-string ReadSlot() // Läser meddelanden
+string readSlot(HANDLE hSlot) // Läser meddelanden
 {
 	DWORD cbMessage, cMessage, cbRead;
 	BOOL fResult;
 	LPTSTR lpszBuffer;
-	TCHAR achID[80];
+	TCHAR achID[1024];
 	DWORD cAllMessages;
 	HANDLE hEvent;
 	OVERLAPPED ov;
 
 	cbMessage = cMessage = cbRead = 0;
 
-	hEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("ExampleSlot"));
+	hEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("ReadSlot"));
 	if (NULL == hEvent)
 		return "FALSE";
 	ov.Offset = 0;
@@ -89,10 +77,9 @@ string ReadSlot() // Läser meddelanden
 
 	if (cbMessage == MAILSLOT_NO_MESSAGE)
 	{
-		printf("Waiting for a message...\n");
-		return "TRUE";
+		return "";
 	}
-	
+
 	lpszBuffer = (LPTSTR)GlobalAlloc(GPTR,
 		lstrlen((LPTSTR)achID)*sizeof(TCHAR) + cbMessage);
 	if (NULL == lpszBuffer)
@@ -113,7 +100,7 @@ string ReadSlot() // Läser meddelanden
 	}
 
 	string query = "";
-	for (int i = 0; lpszBuffer[i] != '\0';i++)
+	for (int i = 0; lpszBuffer[i] != '\0'; i++)
 	{
 		query += (char)lpszBuffer[i];
 	}
@@ -123,9 +110,9 @@ string ReadSlot() // Läser meddelanden
 	return query;
 }
 
-BOOL WINAPI MakeSlot(LPTSTR lpszSlotName) //Krävs för att kunna ta emot meddelanden
+BOOL WINAPI MakeReciSlot(LPTSTR lpszSlotName, HANDLE *hSlot) //Krävs för att kunna ta emot meddelanden
 {
-	hSlot = CreateMailslot(lpszSlotName,
+	*hSlot = CreateMailslot(lpszSlotName,
 		0,                             // no maximum message size 
 		MAILSLOT_WAIT_FOREVER,         // no time-out for operations 
 		(LPSECURITY_ATTRIBUTES)NULL); // default security
@@ -138,9 +125,28 @@ BOOL WINAPI MakeSlot(LPTSTR lpszSlotName) //Krävs för att kunna ta emot meddelan
 	return TRUE;
 }
 
+BOOL WINAPI MakeSendSlot(LPTSTR lpszSlotName, HANDLE *hFile)
+{
+	*hFile = CreateFile(lpszSlotName,
+		GENERIC_WRITE,
+		FILE_SHARE_READ,
+		(LPSECURITY_ATTRIBUTES)NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		(HANDLE)NULL);
+
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		printf("CreateFile failed with %d.\n", GetLastError());
+		return FALSE;
+	}
+
+	return TRUE;
+}
 
 bool t()
 {
+	/*
 	vector<ClothArticle*> allArticles = readCatalogeFromFile("readyFile.xx");
 
 
@@ -148,7 +154,7 @@ bool t()
 
 	while (TRUE)
 	{
-		string res = ReadSlot();
+		string res = ReadSlot(SlotName);
 		if (res == "FALSE")
 			return false;
 		else if (res != "TRUE" && res != "Message one for mailslot." && res != "Message two for mailslot." && res != "Message three for mailslot.")
@@ -163,7 +169,7 @@ bool t()
 		}
 		Sleep(1000);
 	}
-	
+	*/
 
 	/*
 	HANDLE hFile;
@@ -195,21 +201,366 @@ bool t()
 	return true;
 }
 
-
-void engineLoop(string catalogePath)
+BOOL isOnline(LPTSTR lpszSlotName, HANDLE *hSlot)
 {
+	if (!MakeSendSlot(FRONT_TO_BACK_SLOT, hSlot))
+		return FALSE;
+	BOOL ret = writeSlot(*hSlot, TEXT("STATUS\n"));
+	CloseHandle(*hSlot);
+	return ret;
+}
+
+inline bool correctPath(const string& path) {
+	struct stat buffer;
+	return (stat(path.c_str(), &buffer) == 0);
+}
+
+void printMainMenu()
+{ 
+	cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$               THE SEARCH FOR FASHION                  $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$   1.     Check status of backend.                     $$" << endl
+		 << "$$   2.     Send a search query.                         $$" << endl
+		 << "$$   START  Starts a backend process.                    $$" << endl
+		 << "$$   END    Terminates backend process.                  $$" << endl
+		 << "$$   end    Exits program.                               $$" << endl
+		 << "$$                                                       $$" << endl
+		 << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl;
+}
+
+void frontend()
+{
+	HANDLE reciSlot;
+	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
+		return;
+	HANDLE sendSlot;
+
+	printMainMenu();
+	string inp;
+	for (cin >> inp; inp != "end"; printMainMenu(), cin >> inp, printMainMenu())
+	{
+		if (inp == "1")
+		{
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+				cout << "Backend is online." << endl;
+			else
+				cout << "Backend is offline." << endl;
+		}
+		else if (inp == "END")
+		{
+			if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				writeSlot(sendSlot, TEXT("END\n"));
+				CloseHandle(sendSlot);
+			}
+		}
+		else if (inp == "START")
+		{
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				cout << "Backend already up and running." << endl;
+			}
+			else
+			{
+				STARTUPINFO si;
+				PROCESS_INFORMATION pi;
+
+				ZeroMemory(&si, sizeof(si));
+				si.cb = sizeof(si);
+				ZeroMemory(&pi, sizeof(pi));
+
+				CreateProcess(TEXT("./OpenCV_test.exe"),   // the path
+					TEXT("OpenCV_test.exe -b"),       // Command line
+					NULL,           // Process handle not inheritable
+					NULL,           // Thread handle not inheritable
+					FALSE,          // Set handle inheritance to FALSE
+					0,              // No creation flags
+					NULL,           // Use parent's environment block
+					NULL,           // Use parent's starting directory 
+					&si,            // Pointer to STARTUPINFO structure
+					&pi             // Pointer to PROCESS_INFORMATION structure
+					);
+				// Close process and thread handles. 
+				CloseHandle(pi.hProcess);
+				CloseHandle(pi.hThread);
+			}
+		}
+		else if("2")
+		{
+			if(!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				cout << "Couldn't send request, backend is offline." << endl;
+			}
+			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				string query = "imgSearch\n";
+				
+				bool valid = false;
+				do
+				{
+					cout << "Input path to search query: ";
+					string inputPath;
+					cin >> inputPath;
+
+					if (inputPath == "Defualt")
+					{
+						query += "./hmtest3.jpg\n";
+						valid = true;
+					}
+					else if (correctPath(inputPath))
+					{
+						query += inputPath + '\n';
+						valid = true;
+					}
+					else
+					{
+						cout << "Incorrect path." << endl;
+					}
+				} while (!valid);
+
+				valid = false;
+				do
+				{
+					cout << "Input number of hits (maximum size = " + to_string(MAXIMUM_SEARCH_HITS) + "): ";
+					string inputHits;
+					cin >> inputHits;
+
+					if (inputHits == "Defualt")
+					{
+						query += "5\n";
+						valid = true;
+					}
+					try
+					{
+						int n = stoi(inputHits);
+						if (n > MAXIMUM_SEARCH_HITS)
+							throw 2;
+						query += inputHits + '\n';
+						valid = true;
+					}
+					catch (exception e)
+					{
+						cout << "Invalid input, input must be an integer." << endl;
+					}
+					catch (int e)
+					{
+						cout << "Invalid input, input must be an integer smaller or equal to " + to_string(MAXIMUM_SEARCH_HITS) << endl;
+					}
+				} while (!valid);
+
+				valid = false;
+				do
+				{
+					cout << "Choose filters (0 - None, 1 - Color, 2 - Clothing Type, 3 - All): ";
+					string filter;
+					cin >> filter;
+					try 
+					{
+						if (filter == "0")
+						{
+							query += "None\n";
+							valid = true;
+						}
+						else if (filter == "1")
+						{
+							query += "Color\n";
+							valid = true;
+						}
+						else if (filter == "2")
+						{
+							query += "ClothingType\n";
+							valid = true;
+						}
+						else if (filter == "3")
+						{
+							query += "All\n";
+							valid = true;
+						}
+						else
+						{
+							throw 2;
+						}
+						int b = stoi(filter);
+					}
+					catch (exception e)
+					{
+						cout << "Invalid input, must be integer." << endl;
+					}
+					catch (int e)
+					{
+						cout << "Invalid input, invalid integer value." << endl;
+					}
+				} while (!valid);
+
+
+				string heb = "imgSearch\n";
+				heb += "./hmtest3.jpg\n";
+				heb += "5\n";
+				heb += "All\n";
+
+				cout << query << endl;
+				cout << heb << endl;
+
+				std::wstring stemp = s2ws(query);
+				LPCWSTR lquery = stemp.c_str();
+				writeSlot(sendSlot, lquery);
+				CloseHandle(sendSlot);
+
+				cout << "Awaiting new query..." << endl;
+
+				vector<string> results;
+				while (results.empty())
+				{
+					string request = readSlot(reciSlot);
+
+					if (request == "FALSE")
+						return;
+
+					if (request != "")
+					{
+						char tmp;
+						int pos = request.find('\n');
+						while (pos != string::npos)
+						{
+							results.push_back(request.substr(0, pos));
+							request = request.substr(pos + 1, request.length() - pos + 1);
+							pos = request.find('\n');
+						}
+					}
+					else
+					{
+						Sleep(1);
+					}
+				}
+
+				for (int i = 0; i < results.size(); i++)
+				{
+					cout << results[i] << endl;
+				}
+			}
+		}
+	}
+
+}
+
+int backend(string catalogePath, bool loadModel)
+{
+	
 	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath);
 
-	cv::Ptr<cv::ml::RTrees> colorModel  = makeRTModel(allArticles, "Color");
+	cv::Ptr<cv::ml::RTrees> colorModel = makeRTModel(allArticles, "Color");
 	cv::Ptr<cv::ml::RTrees> clTypeModel = makeRTModel(allArticles, "ClothingType");
+	if (!loadModel)
+	{
+		colorModel = makeRTModel(allArticles, "Color");
+		colorModel->save(MODEL_COLOR_PATH);
+		clTypeModel = makeRTModel(allArticles, "ClothingType");
+		clTypeModel->save(MODEL_CLTYPE_PATH);
+	}
+	else
+	{
+		colorModel = cv::Algorithm::load<cv::ml::RTrees>(MODEL_COLOR_PATH);
+		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(MODEL_CLTYPE_PATH);
+	}
+
+
+	HANDLE reciSlot;
+	if (!MakeReciSlot(FRONT_TO_BACK_SLOT, &reciSlot))
+		return 1;
+	HANDLE sendSlot;
 	
 	while (true)
 	{
 
+		vector<string> reqArgs;
+		
+		cout << "Awaiting new query..." << endl;
+
+		while (reqArgs.empty())
+		{
+			string request = readSlot(reciSlot);
+
+			if (request == "FALSE")
+				return 1;
 
 
+			if(request != "")
+			{
+				char tmp;
+				int pos = request.find('\n');
+				while (pos != string::npos)
+				{
+					reqArgs.push_back(request.substr(0, pos));
+					request = request.substr(pos+1, request.length() - pos+1);
+					pos = request.find('\n');
+				}
+			}
+			else
+			{
+				Sleep(1);
+			}
+		}
+		
+		string reqType = reqArgs[0];
+		if (reqType == "END")
+		{
+			return 0;
+		}
+		else if (reqType == "imgSearch")
+		{
+			string path    = reqArgs[1];
+			int    n       = stoi(reqArgs[2]);
+			string filters = reqArgs[3];
+
+			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
+
+			cv::Mat featVec = createFeatureVector(queryArticle, "Color");
+			queryArticle->setColor(art_color((int)colorModel->predict(featVec)));
+
+			featVec = createFeatureVector(queryArticle, "ClothingType");
+			queryArticle->setClType(art_clType((int)clTypeModel->predict(featVec)));
+
+
+			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, filters);
+
+			string answer = "";
+			for (int i = 0; i < closeNeigh.size(); i++)
+			{
+				answer += closeNeigh[i] + '\n';
+			}
+
+			if (MakeSendSlot(BACK_TO_FRONT_SLOT, &sendSlot))
+			{
+				std::wstring stemp = s2ws(answer);
+				LPCWSTR ans = stemp.c_str();
+				writeSlot(sendSlot, ans);
+				CloseHandle(sendSlot);
+			}
+		}
+		else if (reqType == "STATUS")
+		{
+			;
+		}
+		else
+		{
+			if (MakeSendSlot(BACK_TO_FRONT_SLOT, &sendSlot))
+			{
+				writeSlot(sendSlot, TEXT("Invalid input.\n"));
+				CloseHandle(sendSlot); 
+			}
+		}
+
+
+		
+
+		
 	}
-
 }
 
 
@@ -289,6 +640,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 
 	vector<string> topResults;
 
+#ifdef _DEBUG
 	if(false)
 	{
 		for (int i = 0; i < n; i++)
@@ -317,7 +669,8 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 			priQueue.pop();
 		}
 	}
-	
+#endif
+
 	return topResults;
 }
 
