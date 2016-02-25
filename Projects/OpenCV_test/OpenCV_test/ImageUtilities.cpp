@@ -224,7 +224,7 @@ cv::Mat getChannel(cv::Mat src, int channel)
 * \param input Image that is going to be resized.
 * \return The resulting resized image.
 */
-cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
+/*cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
 {
 	cv::Mat out(cv::Size(sizeX, sizeY), CV_8UC3);
 
@@ -237,6 +237,54 @@ cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
 	else if (inpWh < sizeX || inpHt < sizeY)
 	{
 		cv::resize(input, out, cv::Size(sizeX, sizeY), 0.0, 0.0, cv::INTER_LINEAR);
+	}
+
+	return out;
+}*/
+
+cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY) //int sides)
+{
+	int sides = sizeX;
+
+	cv::Size inSize = input.size();
+	float inRatio = (float)inSize.width / (float)inSize.height;
+	cv::Size newSize;
+	
+	if (inRatio < 0.9)
+		newSize = cv::Size((int)((float)sides * inRatio), sides);
+	else if (inRatio > 1.1)
+		newSize = cv::Size(sides, (int)((float)sides * (1/inRatio)));
+	else
+		newSize = cv::Size(sides, sides);
+
+	cv::Mat mid(newSize, CV_8UC3);
+
+	if (inSize.width > sides || inSize.height > sides)
+	{
+		cv::resize(input, mid, newSize, 0.0, 0.0, cv::INTER_AREA);
+	}
+	else if (inSize.width < sides || inSize.height < sides)
+	{
+		cv::resize(input, mid, newSize, 0.0, 0.0, cv::INTER_LINEAR);
+	}
+
+	if (mid.size() == cv::Size(sides, sides))
+	{
+		return mid;
+	}
+
+	cv::Mat out(cv::Size(sides, sides), CV_8UC3, cv::Scalar(255, 255, 255));
+	if (mid.size().width == sides)
+	{
+		int delta = (sides - mid.size().height) / 2;
+
+		mid.copyTo(out(cv::Rect(0, delta, mid.cols, mid.rows)));
+	}
+	else
+	{
+		int delta = (sides - mid.size().width) / 2;
+
+		mid.copyTo(out(cv::Rect(delta, 0, mid.cols, mid.rows)));
 	}
 
 	return out;

@@ -20,7 +20,8 @@ enum art_color
 	Aqua, Corall, Lime, Metall,
 	Beige, Bla, Blank, Brun, Gra,
 	Gron, Gul, Lila, Orange, Rod,
-	Rosa, Svart, Turkos, Vit
+	Rosa, Svart, Turkos, Vit,
+	Khaki, Skin
 };
 
 enum art_clType
@@ -28,7 +29,10 @@ enum art_clType
 	Bangle, Dress, Jumpsuit, Playsuit,
 	Sweatshirt, Tanktop, Tshirt,
 	Blazer, Blouse, Camisole, Jacket,
-	Kimono, Shirt, Top, Tunic
+	Kimono, Shirt, Top, Tunic,
+	Chinos, Jeans, Leggings, Shorts,
+	Singlet, Skirt, Tights, Trousers,
+	ClTypeError
 };
 
 enum art_sleeveType
@@ -71,6 +75,7 @@ private:
 	
 public:
 	ClothArticle(string id, string path, string color, string clType, int sleeveType);
+	ClothArticle(string id, string path);
 	~ClothArticle();
 
 	void setColor(art_color color);
@@ -96,7 +101,7 @@ string to_string(art_color val);
 string to_string(art_clType val);
 string to_string(art_sleeveType val);
 
-vector<ClothArticle *> readCatalogeFromFile(string path);
-ClothArticle *inputParser(string input);
+vector<ClothArticle *> readCatalogeFromFile(string path, bool partial);
+ClothArticle *inputParser(string input, bool partial);
 
 #endif

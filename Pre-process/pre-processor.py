@@ -24,18 +24,24 @@ def main():
 		elif sys.argv[1] == '--shuffle': #Shuffles inputed data. Reads input and writes to output stream.
 			print(shuffle(sys.stdin))
 		elif sys.argv[1] == '--makeReady': #Returns only the data needed for the machine training. Reads input and writes to output stream.
-			print(makeReady(sys.stdin))
+			for line in makeReady(sys.stdin):
+				print(line)
 		elif sys.argv[1] == '-d': #Downloads the small images to "./images/". Reads input stream.
 			downloadImages()
 		elif sys.argv[1] == '-c':
 			print("WIP")
 		elif sys.argv[1] == '-a': #Do every needed step to make raw .csv to readable file.
 			print(makeReady(shuffle(filterUnique(filterValid(sys.stdin)))))
+		elif sys.argv[1] == '-x': #Do every needed step before makeReady.
+			for line in (shuffle(filterUnique(filterValid(sys.stdin)))):
+				print(line)
 		elif sys.argv[1] == '--fc': #Counts the amount of sleeve types, 0 unknown, 1 sleevless, 2 short, 3 long. Reads from input and writes to output stream.
 			featCheck = [0,0,0,0];
 			for line in sys.stdin:
 				featCheck[parseDetails(getDetails(line))[0]+1] += 1
 			print (featCheck)
+		elif sys.argv[1] == '--fixMissingType':
+			fixOrder()
 			
 	else:
 		lines = "20 Ak\n30 Mo\n10 Ti\n"
@@ -84,7 +90,7 @@ def tests():
 		
 		if color not in c:
 			c.add(color)
-			#print(color)
+			print(color)
 			
 		if sleeve not in sl:
 			sl.add(sleeve)
@@ -96,6 +102,67 @@ def tests():
 	print (sorted(s))
 	print (sorted(sl))
 	print("kov")
+	
+def fixOrder():
+	pattern  = re.compile('[0-9]+;')
+	
+	#line = "6775122;ProductImages/6762/6762106/S0000006775131_F_W30_20120719124606.jpg;ProductImages/6762/6762106/S0000006775131_F_W40_20120719124610.jpg;Five-pocket style stretch jeans with regular waist. Fitted through the thigh and straight leg from the knee down. Inside leg measures 82 cm in length 32. ;NULL;Blå"
+	
+	for line in filterValid2(sys.stdin):
+		if line != '\n':
+			line = line.replace('\n','')
+			found  = pattern.search(line)
+			
+			middle = "skirt;"
+					
+			first = line[0:found.end()]
+			last = line[found.end():len(line)]
+			
+			print (first+middle+middle+last)
+	
+	
+	
+def fixOrderByxor():
+	re.UNICODE
+	pattern = re.compile('[0-9]+;')
+	
+	patternLeggings = re.compile('(legging|Legging|jegging|treggings)+')
+	patternTrousers = re.compile('(trouser|Trouser|trousres|pants)+')
+	patternShorts   = re.compile('(shorts|Shorts)+')
+	patternChinos   = re.compile('(chinos|Chinos)+')
+	
+	
+	for line in filterValid2(sys.stdin):
+		if line != '\n':
+			found = pattern.search(line)
+			
+			middle = ";"
+			
+			if(patternTrousers.search(line)):
+				middle = "trousers;"
+			if(patternShorts.search(line)):
+				middle = "shorts;"
+			if(patternLeggings.search(line)):
+				middle = "leggings;"
+			if(patternChinos.search(line)):
+				middle = "chinos;"
+				
+			line = line.replace('\n','')
+			first = line[0:found.end()]
+			last = line[found.end():len(line)]
+			
+			print (first+middle+middle+last)
+		
+def filterValid2(input):
+	re.UNICODE
+	pattern = re.compile('[0-9]+;([A-z0-9\ \,\.\/]+)(.jpg|.png);([A-z0-9\ \,\.\/]+)(.jpg|.png);([A-z0-9\ \,\.\-\!]+);[A-z0-9\ \,\.\-\!]+;[A-Öa-ö]+')
+	
+	out = []
+	for line in input:
+		if pattern.match(line):
+			line = line.replace('\n','')
+			out.append(line)
+	return out
 	
 def shuffle(input):
 	out = []
@@ -142,7 +209,7 @@ def makeReady(input):
 			
 			output = header + id + path + color + clothType + sleeveType
 			out.append(output)
-	return output
+	return out
 				 
 		
 		
@@ -210,6 +277,8 @@ def getColor(input):
 	if found:
 		tmp = input[found.start():len(input)]
 		tmp = tmp.replace('\n','')
+		if(tmp == "d" or tmp == "n"):
+			print (input)
 		return(tmp)
 
 def getSmallImageLoc(input):
@@ -252,7 +321,7 @@ def getTypeSwe(input):
 		return (input[posFirst:posSecond])
 	
 
-def getTypeEng(input):
+def getTypeEng(input):     # <--- Stoppa in en massa nya patterns...
 	input = input.lower()
 	patternFirst  = re.compile('[0-9]+;[A-ö\ \,\.\-\!]+;')
 	patternSecond = re.compile('[0-9]+;[A-ö\ \,\.\-\!]+;[A-z\ \,\.\-\!]+')
@@ -284,6 +353,13 @@ def getTypeEng(input):
 		patternDress      = re.compile('(dress)')
 		patternKimono     = re.compile('(kimono)')
 		patternKl         = re.compile('(kl)')
+		
+		patternJeans      = re.compile('(jeans)')
+		patternTights     = re.compile('(tights)')
+		patternTrousers   = re.compile('(trousers)')
+		patternLeggings   = re.compile('(leggings)')
+		patternChinos     = re.compile('(chinos)')
+		patternShorts     = re.compile('(shorts)')
 		
 		if(patternTShirt.search(input)):
 			return ("Tshirt")
@@ -324,32 +400,21 @@ def getTypeEng(input):
 		if(patternKl.search(input)):
 			return ("Dress")
 		
+		if(patternJeans.search(input)):
+			return ("Jeans")
+		if(patternTights.search(input)):
+			return ("Tights")
+		if(patternTrousers.search(input)):
+			return ("Trousers")
+		if(patternLeggings.search(input)):
+			return ("Leggings")
+		if(patternChinos.search(input)):
+			return ("Chinos")
+		if(patternShorts.search(input)):
+			return ("Shorts")
+		
 		print(input)
 		return ("WRONG")
-
-#Jacket
-#Dress
-#Top
-#Bangle
-#Blazer
-#Blouse
-#Camisole
-#Tunic
-#Singlet
-#T-shirt
-#Sweatshirt
-#Sweater
-#Skirt
-#Shirt
-#Playsuit
-#Shirtdress
-#Tank Top
-#Tanktop
-#Topp
-#Tubetop
-#Kimono
-#Kl	
-
 	
 def getDetails(input):
 	re.UNICODE

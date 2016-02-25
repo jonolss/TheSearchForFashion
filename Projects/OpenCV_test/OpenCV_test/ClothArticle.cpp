@@ -102,6 +102,16 @@ cv::Mat ImageFeatures::getHSVHist(int ch) { return hsvHists[ch]; }
 */
 cv::Mat ImageFeatures::getEdgeHist(int n) { return edgeHists[n]; }
 
+/**Constructor for making a partial ClothArticle.
+*
+* \param id Id of the article.
+* \param path Path to the image of the article.
+*/
+ClothArticle::ClothArticle(string id, string path)
+{
+	this->id = id;
+	this->path = path;
+}
 
 /**Constructor for making a ClothArticle.
 *
@@ -299,8 +309,26 @@ art_clType checkClType(string input)
 		return Top;
 	if (input == "Tunic")
 		return Tunic;
-	return Tunic;
+	if (input == "Chinos")
+		return Chinos;
+	if (input == "Jeans")
+		return Jeans;
+	if (input == "Leggings")
+		return Leggings;
+	if (input == "Shorts")
+		return Shorts;
+	if (input == "Singlet")
+		return Singlet;
+	if (input == "Skirt")
+		return Skirt;
+	if (input == "Tights")
+		return Tights;
+	if (input == "Trousers")
+		return Trousers;
+
+	return ClTypeError;
 }
+
 
 /**Convert numerical value to correspondant enumaral.
 *
@@ -344,7 +372,7 @@ string to_string(art_color val)
 		case Brun:
 			return "Brun";
 		case Gra:
-			return"Gra";
+			return "Gra";
 		case Gron:
 			return "Gron";
 		case Gul:
@@ -363,6 +391,10 @@ string to_string(art_color val)
 			return "Turkos";
 		case Vit:
 			return "Vit";
+		case Khaki:
+			return "Khaki";
+		case Skin:
+			return "Skin";
 		default:
 			return "Invalid color value";
 	}
@@ -406,6 +438,22 @@ string to_string(art_clType val)
 			return "Top";
 		case Tunic:
 			return "Tunic";
+		case Chinos:
+			return "Chinos";
+		case Jeans:
+			return "Jeans";
+		case Leggings:
+			return "Leggings";
+		case Shorts:
+			return "Shorts";
+		case Singlet:
+			return "Singlet";
+		case Skirt:
+			return "Skirt";
+		case Tights:
+			return "Tights";
+		case Trousers:
+			return "Trousers";
 		defualt:
 			return "Invalid clothing type";
 	}
@@ -435,9 +483,10 @@ string to_string(art_sleeveType val)
 /**Reads and parses a cataloge file into a vector of ClothArticles.
 *
 * \param path Path to a cataloge file.
+* \param partial When true makes ClothArticle with only id and path.
 * \return A vector of all ClothArticle in the cataloge.
 */
-vector<ClothArticle *> readCatalogeFromFile(string path)
+vector<ClothArticle *> readCatalogeFromFile(string path, bool partial)
 {
 	ifstream inputFile(path, ios::in);
 
@@ -446,7 +495,7 @@ vector<ClothArticle *> readCatalogeFromFile(string path)
 	string line;
 	while (getline(inputFile, line))
 	{
-		allArticles.push_back(inputParser(line));
+		allArticles.push_back(inputParser(line, partial));
 	}
 	inputFile.close();
 
@@ -456,9 +505,10 @@ vector<ClothArticle *> readCatalogeFromFile(string path)
 /**Parse lines from a cataloge file into ClothArticles.
 *
 * \param input Line that is going to be parsed.
+* \param partial When true makes ClothArticle with only id and path.
 * \return Resulting ClothArticle using parsed data.
 */
-ClothArticle *inputParser(string input)
+ClothArticle *inputParser(string input, bool partial)
 {
 
 	//#7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
@@ -552,5 +602,9 @@ ClothArticle *inputParser(string input)
 	}
 	int sleeveType = stoi(buff);
 
+	if (partial)
+	{
+		return new ClothArticle(id, path);
+	}
 	return new ClothArticle(id, path, color, clType, sleeveType);
 }

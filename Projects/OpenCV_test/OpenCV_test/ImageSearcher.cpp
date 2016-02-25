@@ -203,7 +203,7 @@ bool t()
 
 BOOL isOnline(LPTSTR lpszSlotName, HANDLE *hSlot)
 {
-	if (!MakeSendSlot(FRONT_TO_BACK_SLOT, hSlot))
+	if (!MakeSendSlot(lpszSlotName, hSlot))
 		return FALSE;
 	BOOL ret = writeSlot(*hSlot, TEXT("STATUS\n"));
 	CloseHandle(*hSlot);
@@ -215,7 +215,7 @@ inline bool correctPath(const string& path) {
 	return (stat(path.c_str(), &buffer) == 0);
 }
 
-void printMainMenu()
+void printMainMenu(string message)
 { 
 	cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl
 		 << "$$                                                       $$" << endl
@@ -232,39 +232,66 @@ void printMainMenu()
 		 << "$$   end    Exits program.                               $$" << endl
 		 << "$$                                                       $$" << endl
 		 << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl;
+	cout << message << endl;
 }
 
-void frontend()
+unordered_map<string, string> makeIdToPathTable(vector<ClothArticle *> cataloge)
 {
+	unordered_map<string, string> hashTable;
+
+	while (!cataloge.empty())
+	{
+		ClothArticle *tmp = cataloge.back();
+		hashTable.insert(make_pair(tmp->getId(), tmp->getPath()));
+		delete tmp;
+		cataloge.pop_back();
+	}
+	return hashTable;
+}
+
+void frontend(string catalogePath)
+{
+	unordered_map<string, string> hashTable;
+	hashTable = makeIdToPathTable(readCatalogeFromFile(catalogePath, true));
+
 	HANDLE reciSlot;
 	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
 		return;
 	HANDLE sendSlot;
 
-	printMainMenu();
-	string inp;
-	for (cin >> inp; inp != "end"; printMainMenu(), cin >> inp, printMainMenu())
+
+	string message = "";
+	string inp = "";
+	while (inp != "end")
 	{
+		printMainMenu(message);
+		cin >> inp;
 		if (inp == "1")
 		{
 			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-				cout << "Backend is online." << endl;
+				message = "Backend is online.";
 			else
-				cout << "Backend is offline." << endl;
+				message = "Backend is offline.";
 		}
 		else if (inp == "END")
 		{
-			if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
-				writeSlot(sendSlot, TEXT("END\n"));
-				CloseHandle(sendSlot);
+				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+				{
+					writeSlot(sendSlot, TEXT("END\n"));
+					CloseHandle(sendSlot);
+				}
+				message = "Terminating backend.";
 			}
+			else
+				message = "Backend is already offline.";
 		}
 		else if (inp == "START")
 		{
 			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
-				cout << "Backend already up and running." << endl;
+				message = "Backend already up and running.";
 			}
 			else
 			{
@@ -276,7 +303,7 @@ void frontend()
 				ZeroMemory(&pi, sizeof(pi));
 
 				CreateProcess(TEXT("./OpenCV_test.exe"),   // the path
-					TEXT("OpenCV_test.exe -b"),       // Command line
+					TEXT("OpenCV_test.exe -b --embeded"),       // Command line
 					NULL,           // Process handle not inheritable
 					NULL,           // Thread handle not inheritable
 					FALSE,          // Set handle inheritance to FALSE
@@ -289,23 +316,24 @@ void frontend()
 				// Close process and thread handles. 
 				CloseHandle(pi.hProcess);
 				CloseHandle(pi.hThread);
+				message = "Starting backend.";
 			}
 		}
 		else if("2")
 		{
 			if(!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
-				cout << "Couldn't send request, backend is offline." << endl;
+				message = "Couldn't send request, backend is offline.";
 			}
 			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
 				string query = "imgSearch\n";
-				
+				string inputPath;
+
 				bool valid = false;
 				do
 				{
 					cout << "Input path to search query: ";
-					string inputPath;
 					cin >> inputPath;
 
 					if (inputPath == "Defualt")
@@ -357,7 +385,8 @@ void frontend()
 				valid = false;
 				do
 				{
-					cout << "Choose filters (0 - None, 1 - Color, 2 - Clothing Type, 3 - All): ";
+					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - Color and ClothType at same time," << endl 
+						 << "4 - Only Color Vectors, 5 - Only Shape Vectors): ";
 					string filter;
 					cin >> filter;
 					try 
@@ -380,6 +409,16 @@ void frontend()
 						else if (filter == "3")
 						{
 							query += "All\n";
+							valid = true;
+						}
+						else if (filter == "4")
+						{
+							query += "Color_NoML\n";
+							valid = true;
+						}
+						else if (filter == "5")
+						{
+							query += "ClType_NoML\n";
 							valid = true;
 						}
 						else
@@ -412,8 +451,6 @@ void frontend()
 				writeSlot(sendSlot, lquery);
 				CloseHandle(sendSlot);
 
-				cout << "Awaiting new query..." << endl;
-
 				vector<string> results;
 				while (results.empty())
 				{
@@ -439,20 +476,33 @@ void frontend()
 					}
 				}
 
+				cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
+				cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
+				cv::namedWindow("Query", 1);
+				cv::imshow("Query", tmpImg2);
 				for (int i = 0; i < results.size(); i++)
 				{
-					cout << results[i] << endl;
+					cout << results[i] << " : " << hashTable[results[i]] << endl;
+					tmpImg = cv::imread(hashTable[results[i]], cv::IMREAD_UNCHANGED);
+					cout << hashTable[results[i]] << endl;
+					if (hashTable[results[i]].find(".png") != string::npos)
+						filterAlphaArtifacts(&tmpImg);
+					tmpImg2 = resizeImg(tmpImg, 300, 300);
+					cv::namedWindow("Result # " + to_string(i + 1), 1);
+					cv::imshow("Result # " + to_string(i + 1), tmpImg2);
 				}
+				cv::waitKey(0);
+				cv::destroyAllWindows();
 			}
 		}
 	}
 
 }
 
-int backend(string catalogePath, bool loadModel)
+int backend(string catalogePath, bool embeded, bool loadModel)
 {
 	
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath);
+	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath, false);
 
 	cv::Ptr<cv::ml::RTrees> colorModel = makeRTModel(allArticles, "Color");
 	cv::Ptr<cv::ml::RTrees> clTypeModel = makeRTModel(allArticles, "ClothingType");
@@ -480,7 +530,10 @@ int backend(string catalogePath, bool loadModel)
 
 		vector<string> reqArgs;
 		
-		cout << "Awaiting new query..." << endl;
+		if(!embeded)
+		{
+			cout << "Awaiting new query..." << endl;
+		}
 
 		while (reqArgs.empty())
 		{
@@ -556,9 +609,6 @@ int backend(string catalogePath, bool loadModel)
 			}
 		}
 
-
-		
-
 		
 	}
 }
@@ -574,7 +624,7 @@ int backend(string catalogePath, bool loadModel)
 */
 vector<string> seekUsingImage(string catalogePath, string queryPath, int n)
 {
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath);
+	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath, false);
 
 	ClothArticle* queryArticle = new ClothArticle("Input", queryPath, "Rod", "Top", -1);
 
@@ -609,7 +659,17 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 		if (testType == "ClothingType" && curr->getClType() == query->getClType() || testType == "Color" && curr->getColor() == query->getColor())
 		{
 			cv::Mat currFeat = createFeatureVector(curr, testType);
-			float dist = calcEuclDist(queryFeat, currFeat);
+			float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
+
+			tuple<float, string> currPriEntry;
+			currPriEntry = make_tuple(dist, curr->getId());
+
+			priQueue.push(currPriEntry);
+		}
+		else if (testType == "ClType_NoML" || testType == "Color_NoML")
+		{
+			cv::Mat currFeat = createFeatureVector(curr, testType);
+			float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
 
 			tuple<float, string> currPriEntry;
 			currPriEntry = make_tuple(dist, curr->getId());
@@ -619,7 +679,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 		else if (testType == "None")
 		{
 			cv::Mat currFeat = createFeatureVector(curr, "Color+ClothingType");
-			float dist = calcEuclDist(queryFeat, currFeat);
+			float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
 
 			tuple<float, string> currPriEntry;
 			currPriEntry = make_tuple(dist, curr->getId());
@@ -629,7 +689,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 		else if (testType == "All" && curr->getClType() == query->getClType() && curr->getColor() == query->getColor())
 		{
 			cv::Mat currFeat = createFeatureVector(curr, "Color+ClothingType");
-			float dist = calcEuclDist(queryFeat, currFeat);
+			float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
 
 			tuple<float, string> currPriEntry;
 			currPriEntry = make_tuple(dist, curr->getId());
@@ -641,6 +701,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 	vector<string> topResults;
 
 #ifdef _DEBUG
+	cout << to_string(query->getClType()) << endl << to_string(query->getColor()) << endl;
 	if(false)
 	{
 		for (int i = 0; i < n; i++)
@@ -662,14 +723,25 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 	}
 	else
 	{
-		for (int i = 0; i < n; i++)
+		int maxIter = (n < priQueue.size() ? n : priQueue.size());
+		for (int i = 0; i < maxIter; i++)
 		{
 			topResults.push_back(get<1>(priQueue.top()));
 			cout << get<0>(priQueue.top()) << endl;
 			priQueue.pop();
 		}
 	}
+#else
+
+	int maxIter = (n < priQueue.size() ? n : priQueue.size());
+	for (int i = 0; i < maxIter; i++)
+	{
+		topResults.push_back(get<1>(priQueue.top()));
+		priQueue.pop();
+	}
+
 #endif
+
 
 	return topResults;
 }
@@ -685,7 +757,7 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 	cv::Mat fVec;
 	ImageFeatures inpFeats = input->getImgFeats();
 
-	if (testType == "Color")
+	if (testType == "Color" || testType == "Color_NoML")
 	{
 		fVec = cv::Mat(1, 32 * 6, CV_32F);
 		for (int j = 0; j < 6; j++)
@@ -706,7 +778,7 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 			}
 		}
 	}
-	else if (testType == "ClothingType")
+	else if (testType == "ClothingType" || testType == "ClType_NoML")
 	{
 		fVec = cv::Mat(1, 2 * 100, CV_32FC1);
 
@@ -872,17 +944,22 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> input, strin
 * \param mat2 Second Matrix.
 * \return The resulting matrix.
 */
-float calcEuclDist(cv::Mat mat1, cv::Mat mat2)
+float calcEuclDist(cv::Mat mat1, cv::Mat mat2, cv::Mat scale)
 {
 	if (mat1.size() != mat2.size())
 		return -1.0f;
+
+	if (scale.size() == cv::Size(0,0))
+	{
+		scale = cv::Mat(mat1.size(), CV_32FC1, cv::Scalar::all(1));
+	}
 
 	float dist = 0;
 	for (int i = 0; i < mat1.rows; i++)
 	{
 		for (int j = 0; j < mat1.cols; j++)
 		{
-			dist += powf((mat1.at<float>(i, j) - mat2.at<float>(i, j)), 2);
+			dist += powf(scale.at<float>(i,j) * ((mat1.at<float>(i, j) - mat2.at<float>(i, j))), 2);
 		}
 	}
 	return sqrt(dist);

@@ -35,11 +35,67 @@ int main(int argc, char* argv[])
 	LPTSTR kov = GetCommandLine();
 	wcout << kov << endl;
 	cout << argv[0] << endl;
-	if (string(argv[1]) == "-f")
-		frontend();
+	if (argc == 3)
+	{
+		cout << argv[2] << endl;
+	}
+
+	if (argc == 1)
+	{
+		cout << "Too few arguments, use -h for help.";
+	}
+	else if (string(argv[1]) == "-f")
+	{
+		frontend("readyFile2.xx");
+	}
 	else if (string(argv[1]) == "-b")
-		backend("readyFile.xx", false);
-	
+	{
+		if (argc == 2)
+		{
+			cout << "lök" << endl;
+			backend("readyFile2.xx", false, false);
+		}
+		else
+		{
+			cout << "rokt" << endl;
+			backend("readyFile2.xx", true, false);
+		}
+	}
+	else if (string(argv[1]) == "-h")
+	{
+		cout << "Use -f to start frontend process." << endl
+			<< "Use -b to start backend process." << endl;
+	}
+	else if (string(argv[1]) == "--test")
+	{
+		testModelWithImage("readyFile2.xx", "indiskatest0.jpg", "ClothingType", false);  //<-- Bör funka på dirren
+	}
+	else if (string(argv[1]) == "--pirate")
+	{
+		//Mat output(frame1.rows * 2, frame1.cols * 2, frame1.type());
+		//output.setTo(0);
+
+		//frame1.copyTo(output(Rect(0, 0, frame1.cols, frame1.rows)));
+
+		cv::Mat input = cv::imread("indiskatest0.jpg", -1);
+
+		cv::Mat img = resizeImg(input, 300, 300);
+
+		cv::Mat back(cv::Size(300, 300), CV_8UC3, cv::Scalar(255,255,255));
+		cv::Mat front(cv::Size(50, 50), CV_8UC3, cv::Scalar(0, 0, 0));
+		front.copyTo(back(cv::Rect(50, 150, front.cols, front.rows)));
+
+		cv::imshow("laugh", img);
+		cv::waitKey(0);
+
+		return 0;
+	}
+	else
+	{
+		cout << "Invalid arguments, use -h for help.";
+	}
+		
+
 	/*
 	if (argc != 2 && argc != 3)
 	{
@@ -55,9 +111,7 @@ int main(int argc, char* argv[])
 
 	//rtrees_test();
 
-	//svmANDrfTest("readyFile.xx", "ClothingType");
-
-	//testModelWithImage("readyFile.xx", "lindextest0.png", "None", false);  //<-- Bör funka på dirren
+	svmANDrfTest("readyFile2.xx", "ClothingType");
 
 	
 	
@@ -93,7 +147,7 @@ int main(int argc, char* argv[])
 */
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel)
 {
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(trainingFilename);
+	vector<ClothArticle*> allArticles = readCatalogeFromFile(trainingFilename, false);
 	
 	ClothArticle* testItem = new ClothArticle("Test0", testFilename, "Gra", "Top", -1);
 
@@ -245,7 +299,7 @@ void testModelWithImage(string trainingFilename, string testFilename, string tes
 
 void svmANDrfTest(string filename, string testType)
 {
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(filename);
+	vector<ClothArticle*> allArticles = readCatalogeFromFile(filename, false);
 
 	int totSize = (int)allArticles.size();
 	int partSize = totSize / 10;
@@ -294,11 +348,22 @@ void svmANDrfTest(string filename, string testType)
 			}
 			else if (testType == "ClothingType")
 			{
+				
 				if (art_clType((int)predictRTResponse) == testArticles.at(i)->getClType())
 					rtHits++;
-
 				if (art_clType((int)predictSVMResponse) == testArticles.at(i)->getClType())
 					svmHits++;
+				
+				if(false)
+				{
+					cout << "RF:  " << to_string(art_clType((int)predictRTResponse)) << endl;
+					cout << "SVM: " << to_string(art_clType((int)predictSVMResponse)) << endl;
+					cout << "Act: " << to_string(testArticles.at(i)->getClType()) << endl;
+
+					cv::namedWindow("check", 1);
+					cv::imshow("check", testArticles.at(i)->getImage());
+					cv::waitKey(0);
+				}
 			}
 
 		}
