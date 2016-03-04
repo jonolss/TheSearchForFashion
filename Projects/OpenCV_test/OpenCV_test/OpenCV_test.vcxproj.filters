@@ -27,7 +27,7 @@
     <ClCompile Include="ImageUtilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FrontEnd.cpp">
+    <ClCompile Include="Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClInclude Include="ImageSearcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FrontEnd.h">
+    <ClInclude Include="Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

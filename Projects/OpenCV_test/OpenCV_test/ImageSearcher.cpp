@@ -1,12 +1,6 @@
 #include "ImageSearcher.h"
 
-#define MODEL_COLOR_PATH  "ColorModel.xml"
-#define MODEL_CLTYPE_PATH "ClTypeModel.xml"
 
-#define BACK_TO_FRONT_SLOT TEXT("\\\\.\\mailslot\\btfs_mailslot")
-#define FRONT_TO_BACK_SLOT TEXT("\\\\.\\mailslot\\ftbs_mailslot")
-
-#define MAXIMUM_SEARCH_HITS 20
 
 std::wstring s2ws(const std::string& s)
 {
@@ -30,7 +24,6 @@ BOOL writeSlot(HANDLE hSlot, LPCWSTR lpszMessage) //skickar meddelanden
 		(DWORD)(lstrlen(lpszMessage) + 1)*sizeof(TCHAR),
 		&cbWritten,
 		(LPOVERLAPPED)NULL);
-
 	if (!fResult)
 	{
 #ifdef _DEBUG
@@ -228,6 +221,7 @@ void printMainMenu(string message)
 		 << "$$   1.     Check status of backend.                     $$" << endl
 		 << "$$   2.     Send a search query.                         $$" << endl
 		 << "$$   START  Starts a backend process.                    $$" << endl
+		 << "$$   SAVE   Saves cataloge for faster starts.            $$" << endl
 		 << "$$   END    Terminates backend process.                  $$" << endl
 		 << "$$   end    Exits program.                               $$" << endl
 		 << "$$                                                       $$" << endl
@@ -252,7 +246,8 @@ unordered_map<string, string> makeIdToPathTable(vector<ClothArticle *> cataloge)
 void frontend(string catalogePath)
 {
 	unordered_map<string, string> hashTable;
-	hashTable = makeIdToPathTable(readCatalogeFromFile(catalogePath, true));
+	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
+	hashTable = makeIdToPathTable(*tmp);
 
 	HANDLE reciSlot;
 	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
@@ -273,53 +268,7 @@ void frontend(string catalogePath)
 			else
 				message = "Backend is offline.";
 		}
-		else if (inp == "END")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
-				{
-					writeSlot(sendSlot, TEXT("END\n"));
-					CloseHandle(sendSlot);
-				}
-				message = "Terminating backend.";
-			}
-			else
-				message = "Backend is already offline.";
-		}
-		else if (inp == "START")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				message = "Backend already up and running.";
-			}
-			else
-			{
-				STARTUPINFO si;
-				PROCESS_INFORMATION pi;
-
-				ZeroMemory(&si, sizeof(si));
-				si.cb = sizeof(si);
-				ZeroMemory(&pi, sizeof(pi));
-
-				CreateProcess(TEXT("./OpenCV_test.exe"),   // the path
-					TEXT("OpenCV_test.exe -b --embeded"),       // Command line
-					NULL,           // Process handle not inheritable
-					NULL,           // Thread handle not inheritable
-					FALSE,          // Set handle inheritance to FALSE
-					0,              // No creation flags
-					NULL,           // Use parent's environment block
-					NULL,           // Use parent's starting directory 
-					&si,            // Pointer to STARTUPINFO structure
-					&pi             // Pointer to PROCESS_INFORMATION structure
-					);
-				// Close process and thread handles. 
-				CloseHandle(pi.hProcess);
-				CloseHandle(pi.hThread);
-				message = "Starting backend.";
-			}
-		}
-		else if("2")
+		else if(inp == "2")
 		{
 			if(!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
@@ -338,11 +287,12 @@ void frontend(string catalogePath)
 
 					if (inputPath == "Defualt")
 					{
-						query += "./hmtest3.jpg\n";
+						query += "live0.jpg\n";
 						valid = true;
 					}
-					else if (correctPath(inputPath))
+					else if (correctPath(TEST_FOLDER + inputPath))
 					{
+						inputPath = TEST_FOLDER + inputPath;
 						query += inputPath + '\n';
 						valid = true;
 					}
@@ -385,11 +335,50 @@ void frontend(string catalogePath)
 				valid = false;
 				do
 				{
-					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - Color and ClothType at same time," << endl 
-						 << "4 - Only Color Vectors, 5 - Only Shape Vectors): ";
+					cout << "Choose feat vectors (0 - All, 1 - Only Color, 2 - Only Clothing Type): ";
+					string fVec;
+					cin >> fVec;
+					try 
+					{
+						if (fVec == "0")
+						{
+							query += "All\n";
+							valid = true;
+						}
+						else if (fVec == "1")
+						{
+							query += "Color\n";
+							valid = true;
+						}
+						else if (fVec == "2")
+						{
+							query += "ClothingType\n";
+							valid = true;
+						}
+						else
+						{
+							throw 2;
+						}
+						int b = stoi(fVec);
+					}
+					catch (exception e)
+					{
+						cout << "Invalid input, must be integer." << endl;
+					}
+					catch (int e)
+					{
+						cout << "Invalid input, invalid integer value." << endl;
+					}
+				} while (!valid);
+
+
+				valid = false;
+				do
+				{
+					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - All): ";
 					string filter;
 					cin >> filter;
-					try 
+					try
 					{
 						if (filter == "0")
 						{
@@ -411,16 +400,6 @@ void frontend(string catalogePath)
 							query += "All\n";
 							valid = true;
 						}
-						else if (filter == "4")
-						{
-							query += "Color_NoML\n";
-							valid = true;
-						}
-						else if (filter == "5")
-						{
-							query += "ClType_NoML\n";
-							valid = true;
-						}
 						else
 						{
 							throw 2;
@@ -436,15 +415,6 @@ void frontend(string catalogePath)
 						cout << "Invalid input, invalid integer value." << endl;
 					}
 				} while (!valid);
-
-
-				string heb = "imgSearch\n";
-				heb += "./hmtest3.jpg\n";
-				heb += "5\n";
-				heb += "All\n";
-
-				cout << query << endl;
-				cout << heb << endl;
 
 				std::wstring stemp = s2ws(query);
 				LPCWSTR lquery = stemp.c_str();
@@ -495,29 +465,99 @@ void frontend(string catalogePath)
 				cv::destroyAllWindows();
 			}
 		}
+		else if (inp == "END")
+		{
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+				{
+					writeSlot(sendSlot, TEXT("END\n"));
+					CloseHandle(sendSlot);
+				}
+				message = "Terminating backend.";
+			}
+			else
+				message = "Backend is already offline.";
+		}
+		else if (inp == "START")
+		{
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				message = "Backend already up and running.";
+			}
+			else
+			{
+				STARTUPINFO si;
+				PROCESS_INFORMATION pi;
+
+				ZeroMemory(&si, sizeof(si));
+				si.cb = sizeof(si);
+				ZeroMemory(&pi, sizeof(pi));
+
+				CreateProcess(TEXT("./The_Search_For_Fashion.exe"),   // the path
+					TEXT("The_Search_For_Fashion -b --embeded"),       // Command line
+					NULL,           // Process handle not inheritable
+					NULL,           // Thread handle not inheritable
+					FALSE,          // Set handle inheritance to FALSE
+					0,              // No creation flags
+					NULL,           // Use parent's environment block
+					NULL,           // Use parent's starting directory 
+					&si,            // Pointer to STARTUPINFO structure
+					&pi             // Pointer to PROCESS_INFORMATION structure
+					);
+				// Close process and thread handles. 
+				CloseHandle(pi.hProcess);
+				CloseHandle(pi.hThread);
+				message = "Starting backend.";
+			}
+		}
+		else if (inp == "SAVE")
+		{
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+				{
+					writeSlot(sendSlot, TEXT("SAVE\n"));
+					CloseHandle(sendSlot);
+				}
+				message = "Saved cataloge.";
+			}
+			else
+				message = "Backend is offline.";
+		}
 	}
 
 }
 
 int backend(string catalogePath, bool embeded, bool loadModel)
 {
-	
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath, false);
-
-	cv::Ptr<cv::ml::RTrees> colorModel = makeRTModel(allArticles, "Color");
-	cv::Ptr<cv::ml::RTrees> clTypeModel = makeRTModel(allArticles, "ClothingType");
-	if (!loadModel)
+	vector<ClothArticle*> *allArticles;
+	cv::Ptr<cv::ml::RTrees> colorModel;
+	cv::Ptr<cv::ml::RTrees> clTypeModel;
+	if (correctPath(catalogePath + SAVE_EXTENTION) && correctPath(catalogePath + MODEL_COLOR_EXTENTION) && correctPath(catalogePath + MODEL_CLTYPE_EXTENTION))
 	{
-		colorModel = makeRTModel(allArticles, "Color");
-		colorModel->save(MODEL_COLOR_PATH);
-		clTypeModel = makeRTModel(allArticles, "ClothingType");
-		clTypeModel->save(MODEL_CLTYPE_PATH);
+		allArticles = loadCataloge(catalogePath + SAVE_EXTENTION);
+		colorModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + MODEL_COLOR_EXTENTION);
+		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + MODEL_CLTYPE_EXTENTION);
 	}
 	else
 	{
-		colorModel = cv::Algorithm::load<cv::ml::RTrees>(MODEL_COLOR_PATH);
-		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(MODEL_CLTYPE_PATH);
+		allArticles = readCatalogeFromFile(catalogePath, false);
+		colorModel = makeRTModel(allArticles, "Color");
+		clTypeModel = makeRTModel(allArticles, "ClothingType");
+		colorModel->save(catalogePath + MODEL_COLOR_EXTENTION);
+		clTypeModel->save(catalogePath + MODEL_CLTYPE_EXTENTION);
 	}
+
+	/*
+	vector<cv::Mat> hist = allArticles->at(0)->getImgFeats()->getEdgeHists();
+	cout << hist.size() << endl;
+	cout << all2->at(0)->getImgFeats()->getEdgeHists()[0].at<float>(0,0) << endl;
+	cout << allArticles->at(0)->getImgFeats()->getEdgeHists()[0].at<float>(0, 0) << endl;
+
+	cout << all2->size() << endl;
+	cout << allArticles->size() << endl;
+	*/
 
 
 	HANDLE reciSlot;
@@ -567,20 +607,27 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 		}
 		else if (reqType == "imgSearch")
 		{
-			string path    = reqArgs[1];
-			int    n       = stoi(reqArgs[2]);
-			string filters = reqArgs[3];
+			string path     = reqArgs[1];
+			int    n        = stoi(reqArgs[2]);
+			string fVecType = reqArgs[3];
+			string filters  = reqArgs[4];
+
 
 			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
 
-			cv::Mat featVec = createFeatureVector(queryArticle, "Color");
-			queryArticle->setColor(art_color((int)colorModel->predict(featVec)));
+			cv::Mat multVec;
+			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
+			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
 
-			featVec = createFeatureVector(queryArticle, "ClothingType");
-			queryArticle->setClType(art_clType((int)clTypeModel->predict(featVec)));
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClothingType", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClType(art_clType((int)clTypeModel->predict(multVec)));
 
 
-			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, filters);
+			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
 
 			string answer = "";
 			for (int i = 0; i < closeNeigh.size(); i++)
@@ -599,6 +646,10 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 		else if (reqType == "STATUS")
 		{
 			;
+		}
+		else if (reqType == "SAVE")
+		{
+			saveCataloge(allArticles, catalogePath + ".sv");
 		}
 		else
 		{
@@ -624,11 +675,21 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 */
 vector<string> seekUsingImage(string catalogePath, string queryPath, int n)
 {
-	vector<ClothArticle*> allArticles = readCatalogeFromFile(catalogePath, false);
+	vector<ClothArticle*> *allArticles = readCatalogeFromFile(catalogePath, false);
 
 	ClothArticle* queryArticle = new ClothArticle("Input", queryPath, "Rod", "Top", -1);
 
-	return findClosestNeighbours(allArticles, queryArticle, n, "None");
+	return findClosestNeighbours(allArticles, queryArticle, n, "All", "None");
+}
+
+
+vector<string> oldseekUsingImage(string catalogePath, string queryPath, int n)
+{
+	vector<ClothArticle*> *allArticles = readCatalogeFromFile(catalogePath, false);
+
+	ClothArticle* queryArticle = new ClothArticle("Input", queryPath, "Rod", "Top", -1);
+
+	return oldfindClosestNeighbours(allArticles, queryArticle, n, "None");
 }
 
 /**Finds the n closest neigboours to given input.
@@ -639,7 +700,7 @@ vector<string> seekUsingImage(string catalogePath, string queryPath, int n)
 * \param testType Type of feature vector being used, e.g. "Color", "ClothingType" or "Color+ClothingType". 
 * \return A vector on the n closest neighbours.
 */
-vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArticle* query, int n, string testType)
+vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string fVecType, string filterType)
 {
 	struct GreatTuple
 	{
@@ -651,11 +712,31 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 
 	priority_queue< tuple<float, string>, vector<tuple<float, string>>, GreatTuple > priQueue;
 
-	cv::Mat queryFeat = createFeatureVector(query, testType);
+	cv::Mat queryFeat = createFeatureVector(query);
+	cv::Mat filtVec = createFilterVector(queryFeat.size(), fVecType, 1.0f, 0.0f);
 
-	for (int i = 0; i < allArticles.size(); i++)
+	for (int i = 0; i < allArticles->size(); i++)
 	{
-		ClothArticle* curr = allArticles[i];
+		ClothArticle* curr = allArticles->at(i);
+
+		bool statement = (filterType == "None")
+			|| (filterType == "ClothingType" && curr->getClType() == query->getClType())
+			|| (filterType == "Color" && curr->getColor() == query->getColor())
+			|| (filterType == "All" && curr->getClType() == query->getClType() && curr->getColor() == query->getColor());
+		if (statement)
+		{
+			cv::Mat currFeat = createFeatureVector(curr); // , fVecType);
+			
+
+			float dist = calcEuclDist(queryFeat, currFeat, filtVec);
+
+			tuple<float, string> currPriEntry;
+			currPriEntry = make_tuple(dist, curr->getId());
+
+			priQueue.push(currPriEntry);
+		}
+
+		/*
 		if (testType == "ClothingType" && curr->getClType() == query->getClType() || testType == "Color" && curr->getColor() == query->getColor())
 		{
 			cv::Mat currFeat = createFeatureVector(curr, testType);
@@ -696,6 +777,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 
 			priQueue.push(currPriEntry);
 		}
+		*/
 	}
 
 	vector<string> topResults;
@@ -709,12 +791,12 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 			topResults.push_back(get<1>(priQueue.top()));
 			cout << get<0>(priQueue.top()) << endl;
 
-			for (int k = 0; k < allArticles.size(); k++)
+			for (int k = 0; k < allArticles->size(); k++)
 			{
-				if (allArticles[k]->getId() == get<1>(priQueue.top()))
+				if (allArticles->at(k)->getId() == get<1>(priQueue.top()))
 				{
 					cv::namedWindow(to_string(i), 1);
-					cv::imshow(to_string(i), allArticles[k]->getImage());
+					cv::imshow(to_string(i), allArticles->at(k)->getImage());
 				}
 			}
 			priQueue.pop();
@@ -746,18 +828,192 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> allArticles, ClothArt
 	return topResults;
 }
 
+
+vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string testType)
+{
+	struct GreatTuple
+	{
+		bool operator()(const tuple<float, string>& lhs, const tuple<float, string>& rhs) const
+		{
+			return get<0>(lhs) > get<0>(rhs);
+		}
+	};
+
+	priority_queue< tuple<float, string>, vector<tuple<float, string>>, GreatTuple > priQueue;
+
+	cv::Mat queryFeat = oldcreateFeatureVector(query, testType);
+
+	for (int i = 0; i < allArticles->size(); i++)
+	{
+		ClothArticle* curr = allArticles->at(i);
+
+		if (testType == "ClothingType" && curr->getClType() == query->getClType() || testType == "Color" && curr->getColor() == query->getColor())
+		{
+		cv::Mat currFeat = oldcreateFeatureVector(curr, testType);
+		float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
+
+		tuple<float, string> currPriEntry;
+		currPriEntry = make_tuple(dist, curr->getId());
+
+		priQueue.push(currPriEntry);
+		}
+		else if (testType == "ClType_NoML" || testType == "Color_NoML")
+		{
+		cv::Mat currFeat = oldcreateFeatureVector(curr, testType);
+		float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
+
+		tuple<float, string> currPriEntry;
+		currPriEntry = make_tuple(dist, curr->getId());
+
+		priQueue.push(currPriEntry);
+		}
+		else if (testType == "None")
+		{
+		cv::Mat currFeat = oldcreateFeatureVector(curr, "Color+ClothingType");
+		float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
+
+		tuple<float, string> currPriEntry;
+		currPriEntry = make_tuple(dist, curr->getId());
+
+		priQueue.push(currPriEntry);
+		}
+		else if (testType == "All" && curr->getClType() == query->getClType() && curr->getColor() == query->getColor())
+		{
+		cv::Mat currFeat = oldcreateFeatureVector(curr, "Color+ClothingType");
+		float dist = calcEuclDist(queryFeat, currFeat, cv::Mat());
+
+		tuple<float, string> currPriEntry;
+		currPriEntry = make_tuple(dist, curr->getId());
+
+		priQueue.push(currPriEntry);
+		}
+	}
+
+	vector<string> topResults;
+
+#ifdef _DEBUG
+	cout << to_string(query->getClType()) << endl << to_string(query->getColor()) << endl;
+	if (false)
+	{
+		for (int i = 0; i < n; i++)
+		{
+			topResults.push_back(get<1>(priQueue.top()));
+			cout << get<0>(priQueue.top()) << endl;
+
+			for (int k = 0; k < allArticles->size(); k++)
+			{
+				if (allArticles->at(k)->getId() == get<1>(priQueue.top()))
+				{
+					cv::namedWindow(to_string(i), 1);
+					cv::imshow(to_string(i), allArticles->at(k)->getImage());
+				}
+			}
+			priQueue.pop();
+		}
+		cv::waitKey(0);
+	}
+	else
+	{
+		int maxIter = (n < priQueue.size() ? n : priQueue.size());
+		for (int i = 0; i < maxIter; i++)
+		{
+			topResults.push_back(get<1>(priQueue.top()));
+			cout << get<0>(priQueue.top()) << endl;
+			priQueue.pop();
+		}
+	}
+#else
+
+	int maxIter = (n < priQueue.size() ? n : priQueue.size());
+	for (int i = 0; i < maxIter; i++)
+	{
+		topResults.push_back(get<1>(priQueue.top()));
+		priQueue.pop();
+	}
+
+#endif
+
+
+	return topResults;
+}
+
+
+cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, float negScale)
+{
+	cv::Mat filtVec(vecSize, CV_32FC1, cv::Scalar(1.0f));
+
+	if (filtType != "All")
+	{
+		if (filtType == "Color")
+		{
+			for (int i = 0; i < filtVec.cols; i++)
+			{
+				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
+			}
+		}
+		else if (filtType == "ClothingType")
+		{
+			for (int i = 0; i < filtVec.cols; i++)
+			{
+				filtVec.at<float>(0, i) = i < 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
+			}
+		}
+		else
+		{
+			cout << "Wrong" << endl;
+		}
+	}
+
+	return filtVec;
+}
+
 /**Creates a feature vector.
 *
 * \param input Article who's feature vector is going to be extracted.
 * \param testType Type of feature vector, e.g. "Color", "ClothingType" or "Color+ClothingType".
 * \return Feature vector of the given article.
 */
-cv::Mat createFeatureVector(ClothArticle* input, string testType)
+cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 {
 	cv::Mat fVec;
-	ImageFeatures inpFeats = input->getImgFeats();
+	ImageFeatures *inpFeats = input->getImgFeats();
 
-	if (testType == "Color" || testType == "Color_NoML")
+	fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 32 * 6, CV_32FC1);
+
+	cv::Mat tmp = inpFeats->getEdgeHist(0);
+
+	for (int j = 0; j < tmp.rows; j++)
+	{
+		fVec.at<float>(0, j) = tmp.at<float>(j, 0);
+	}
+
+	tmp = inpFeats->getEdgeHist(1);
+
+	for (int j = 0; j < tmp.rows; j++)
+	{
+		fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+	}
+
+	for (int j = 0; j < 6; j++)
+	{
+		if (j<3)
+		{
+			tmp = inpFeats->getRGBHist(j);
+		}
+		else
+		{
+			tmp = inpFeats->getHSVHist(j - 3);
+		}
+
+		for (int k = 0; k < 32; k++)
+		{
+			fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE) = (float)tmp.at<float>(k, 0);
+		}
+	}
+
+
+	/*
+	if (fVecType == "Color")
 	{
 		fVec = cv::Mat(1, 32 * 6, CV_32F);
 		for (int j = 0; j < 6; j++)
@@ -778,7 +1034,7 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 			}
 		}
 	}
-	else if (testType == "ClothingType" || testType == "ClType_NoML")
+	else if (fVecType == "ClothingType")
 	{
 		fVec = cv::Mat(1, 2 * 100, CV_32FC1);
 
@@ -797,7 +1053,7 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 			fVec.at<float>(0, j + 100) = tmp.at<float>(j, 0);
 		}
 	}
-	else if (testType == "Color+ClothingType" || testType == "ClothingType+Color" || testType == "None" || testType == "All" )
+	else if (fVecType == "All" )
 	{
 		fVec = cv::Mat(1, 2 * 100 + 32 * 6, CV_32FC1);
 
@@ -831,6 +1087,92 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 				fVec.at<float>(0, tmp.rows * j + k + 200) = (float)tmp.at<float>(k, 0);
 			}
 		}
+		
+	}
+	*/
+	return fVec;
+}
+
+
+cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
+{
+	cv::Mat fVec;
+	ImageFeatures *inpFeats = input->getImgFeats();
+
+	if (fVecType == "Color")
+	{
+		fVec = cv::Mat(1, 32 * 6, CV_32F);
+		for (int j = 0; j < 6; j++)
+		{
+			cv::Mat tmp;
+			if (j<3)
+			{
+				tmp = inpFeats->getRGBHist(j);
+			}
+			else
+			{
+				tmp = inpFeats->getHSVHist(j - 3);
+			}
+
+			for (int k = 0; k < 32; k++)
+			{
+				fVec.at<float>(0, tmp.rows * j + k) = (float)tmp.at<float>(k, 0);
+			}
+		}
+	}
+	else if (fVecType == "ClothingType")
+	{
+		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE, CV_32FC1);
+
+		cv::Mat tmp = inpFeats->getEdgeHist(0);
+
+		for (int j = 0; j < tmp.rows; j++)
+		{
+			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
+		}
+
+		tmp = inpFeats->getEdgeHist(1);
+
+
+		for (int j = 0; j < tmp.rows; j++)
+		{
+			fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+		}
+	}
+	else if (fVecType == "All" )
+	{
+		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 32 * 6, CV_32FC1);
+
+		cv::Mat tmp = inpFeats->getEdgeHist(0);
+
+		for (int j = 0; j < tmp.rows; j++)
+		{
+			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
+		}
+
+		tmp = inpFeats->getEdgeHist(1);
+
+		for (int j = 0; j < tmp.rows; j++)
+		{
+			fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+		}
+
+		for (int j = 0; j < 6; j++)
+		{
+			if (j<3)
+			{
+				tmp = inpFeats->getRGBHist(j);
+			}
+			else
+			{
+				tmp = inpFeats->getHSVHist(j - 3);
+			}
+
+			for (int k = 0; k < 32; k++)
+			{
+				fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE) = (float)tmp.at<float>(k, 0);
+			}
+		}
 
 	}
 	return fVec;
@@ -842,7 +1184,7 @@ cv::Mat createFeatureVector(ClothArticle* input, string testType)
 * \param classifierGroup Type of classifiers, e.g. "Color" or "ClothingType".
 * \return A trained Support Vector Machine model.
 */
-cv::Ptr<cv::ml::SVM> makeSVMModel(vector<ClothArticle*> input, string testType)
+cv::Ptr<cv::ml::SVM> makeSVMModel(vector<ClothArticle*> *input, string testType)
 {
 	cv::Ptr<cv::ml::TrainData> tData = createTrainingData(input, testType);
 
@@ -866,7 +1208,7 @@ cv::Ptr<cv::ml::SVM> makeSVMModel(vector<ClothArticle*> input, string testType)
 * \param classifierGroup Type of classifiers, e.g. "Color" or "ClothingType".
 * \return A trained Random Trees model.
 */
-cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> input, string testType)
+cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> *input, string testType)
 {
 	cv::Ptr<cv::ml::TrainData> tData = createTrainingData(input, testType);
 
@@ -891,18 +1233,70 @@ cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> input, string testType
 * \param classifierGroup Type of classifiers, e.g. "Color" or "ClothingType".
 * \return Training data that can be used for creating ML-models.
 */
-cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> input, string classifierGroup)
+cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, string classifierGroup)
 {
 	vector<int> labels; //color{ + clothType + sleeveType
 
-	for (int i = 0; i < input.size(); i++)
+	for (int i = 0; i < input->size(); i++)
 	{
 		if (classifierGroup == "Color")
-			labels.push_back(input.at(i)->getColor());
+			labels.push_back(input->at(i)->getColor());
 		else if (classifierGroup == "ClothingType")
-			labels.push_back(input.at(i)->getClType());
+			labels.push_back(input->at(i)->getClType());
 		else if (classifierGroup == "SleeveType")
-			labels.push_back(input.at(i)->getSleeveType());
+			labels.push_back(input->at(i)->getSleeveType());
+	}
+
+	cv::Mat labelsMat(labels.size(), 1, CV_32SC1);
+	for (int i = 0; i < labels.size(); i++)
+	{
+		labelsMat.at<int>(i, 0) = labels[i];
+	}
+
+	int dataMatFeature = 2 * EDGE_FEATURE_SIZE + 6 * 32;
+	/*
+	if (classifierGroup == "Color")
+	{
+		dataMatFeature = 6 * 32;
+	}
+	else if (classifierGroup == "ClothingType")
+	{
+		dataMatFeature = 100 * 2;
+	}*/
+
+	cv::Mat tmpVec = createFeatureVector(input->at(0));
+	cv::Mat filtVec = createFilterVector(tmpVec.size(), classifierGroup, 1.0f, 0.0f);
+	cv::Mat trainingDataMat(input->size(), dataMatFeature, CV_32FC1);
+	for (int i = 0; i < labels.size(); i++)
+	{
+		cv::Mat multVec;
+		cv::Mat featVec = createFeatureVector(input->at(i));
+		cv::multiply(featVec, filtVec, multVec);
+
+		for (int k = 0; k < multVec.cols; k++)
+		{
+			trainingDataMat.at<float>(i, k) = multVec.at<float>(0, k);
+		}
+	}
+
+	cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainingDataMat, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat); // <-- Den här får fel data vid ClothingType
+
+	return tData;
+}
+
+
+cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, string classifierGroup)
+{
+	vector<int> labels; //color{ + clothType + sleeveType
+
+	for (int i = 0; i < input->size(); i++)
+	{
+		if (classifierGroup == "Color")
+			labels.push_back(input->at(i)->getColor());
+		else if (classifierGroup == "ClothingType")
+			labels.push_back(input->at(i)->getClType());
+		else if (classifierGroup == "SleeveType")
+			labels.push_back(input->at(i)->getSleeveType());
 	}
 
 	cv::Mat labelsMat(labels.size(), 1, CV_32SC1);
@@ -918,13 +1312,13 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> input, strin
 	}
 	else if (classifierGroup == "ClothingType")
 	{
-		dataMatFeature = 100 * 2;
+		dataMatFeature = EDGE_FEATURE_SIZE * 2;
 	}
 
-	cv::Mat trainingDataMat(input.size(), dataMatFeature, CV_32FC1);
+	cv::Mat trainingDataMat(input->size(), dataMatFeature, CV_32FC1);
 	for (int i = 0; i < labels.size(); i++)
 	{
-		cv::Mat tmp = createFeatureVector(input[i], classifierGroup);
+		cv::Mat tmp = oldcreateFeatureVector(input->at(i), classifierGroup);
 
 		for (int k = 0; k < tmp.cols; k++)
 		{
@@ -951,7 +1345,7 @@ float calcEuclDist(cv::Mat mat1, cv::Mat mat2, cv::Mat scale)
 
 	if (scale.size() == cv::Size(0,0))
 	{
-		scale = cv::Mat(mat1.size(), CV_32FC1, cv::Scalar::all(1));
+		scale = cv::Mat(mat1.size(), CV_32FC1, cv::Scalar::all(0));
 	}
 
 	float dist = 0;
@@ -959,7 +1353,8 @@ float calcEuclDist(cv::Mat mat1, cv::Mat mat2, cv::Mat scale)
 	{
 		for (int j = 0; j < mat1.cols; j++)
 		{
-			dist += powf(scale.at<float>(i,j) * ((mat1.at<float>(i, j) - mat2.at<float>(i, j))), 2);
+			if(scale.at<float>(i,j) != 0)
+				dist += powf(scale.at<float>(i,j) * ((mat1.at<float>(i, j) - mat2.at<float>(i, j))), 2);
 		}
 	}
 	return sqrt(dist);

@@ -60,7 +60,6 @@ void filterAlphaArtifacts(cv::Mat *img)
 
 	for (int i = 0; i < 4; i++)
 	{
-
 		ch[i].release();
 	}
 
@@ -80,17 +79,62 @@ void filterAlphaArtifacts(cv::Mat *img)
 * \param src Image that is going to be edge detected.
 * \return The resulting edge image.
 */
-cv::Mat preformCanny(cv::Mat src)
+cv::Mat preformCanny(cv::Mat src, double lowThresh, double highThresh)
 {
 	cv::Mat out;
-
-	double threshold1 = 60.0;
-	double threshold2 = 120.0;
 
 	int apertureSize = 3;
 	bool L2gradient = false;
 
-	Canny(src, out, threshold1, threshold2, apertureSize, L2gradient);
+	Canny(src, out, lowThresh, highThresh, apertureSize, L2gradient);
+
+	return out;
+}
+
+
+cv::Mat apply2derFilt(cv::Mat src, bool vert)
+{
+	cv::Mat out(src.size(), CV_8U, cv::Scalar(120));
+	
+	for (int x = 0; x < src.size().width; x++)
+	{
+		for (int y = 0; y < src.size().height; y++)
+		{
+			uchar front, mid, back;
+			mid = (int)src.at<uchar>(y, x);
+			//cout << (int)src.at<uchar>(y, 250) << " ";
+			if (!vert)
+			{
+				if (x == src.size().width-1)
+					front = 0;
+				else
+					front = src.at<uchar>(y, x + 1);
+				if (x == 0)
+					back = 0;
+				else
+					back = src.at<uchar>(y, x - 1);
+			}
+			else
+			{
+				if (y == src.size().height-1)
+					front = 0;
+				else
+					front = src.at<uchar>(y + 1, x);
+				if (y == 0)
+					back = 0;
+				else
+					back = src.at<uchar>(y - 1, x);
+			}
+			out.at<uchar>(y, x) = (uchar)abs((int)front + (int)back - 2 * (int)mid);
+			//out.at<uchar>(y, x) = (int)src.at<uchar>(y, x);
+		}
+		/*
+		cv::imshow("Baff", src);
+		cv::imshow("Add", out);
+		cv::waitKey(0);*/
+	}
+	cv::imshow("Baff", src);
+	cv::waitKey(0);
 
 	return out;
 }
@@ -105,8 +149,8 @@ cv::Mat preformGaussianBlur(cv::Mat src)
 	cv::Mat out;
 
 	cv::Size ksize = cv::Size(3, 3);
-	double sigmaX = 4.00;
-	double sigmaY = 4.00;
+	double sigmaX = 4.0;
+	double sigmaY = 4.0;
 
 	GaussianBlur(src, out, ksize, sigmaX, sigmaY);
 
@@ -273,6 +317,7 @@ cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY) //int sides)
 		return mid;
 	}
 
+
 	cv::Mat out(cv::Size(sides, sides), CV_8UC3, cv::Scalar(255, 255, 255));
 	if (mid.size().width == sides)
 	{
@@ -283,9 +328,365 @@ cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY) //int sides)
 	else
 	{
 		int delta = (sides - mid.size().width) / 2;
-
 		mid.copyTo(out(cv::Rect(delta, 0, mid.cols, mid.rows)));
 	}
 
 	return out;
+}
+
+void saveMat(cv::Mat input, ofstream *outFile)
+{
+	int width    = input.size().width;
+	int height   = input.size().height;
+	int type     = input.type();
+	int elemSize = input.elemSize();
+	char* data   = (char*)input.data;
+
+	//cout << width << endl;
+	//cout << height << endl;
+	//cout << type << endl;
+	//cout << elemSize << endl;
+	
+	int *head = (int*)calloc(4, sizeof(int));
+	*head = width;
+	*(head + 1) = height;
+	*(head + 2) = type;
+	*(head + 3) = elemSize;
+	outFile->write((char*)head, 4 * sizeof(int));
+	free(head);
+
+	int bytes = width * height * elemSize;
+	outFile->write((char*)data, bytes);
+}
+
+cv::Mat loadMat(ifstream *inFile)
+{
+	int width;
+	int height;
+	int type;
+	int elemSize;
+	char* data;
+
+	int bytes = 4 * sizeof(int);
+	int *head = (int*)calloc(4, sizeof(int));
+	inFile->read((char*)head, bytes);
+	width    = *head;
+	height   = *(head + 1);
+	type     = *(head + 2);
+	elemSize = *(head + 3);
+	free(head);
+
+	bytes = width * height * elemSize;
+	data = (char*)calloc(bytes, sizeof(char));
+	inFile->read((char*)data, bytes);
+	
+	//cout << width << endl;
+	//cout << height << endl;
+	//cout << type << endl;
+	//cout << elemSize << endl;
+
+	cv::Mat res = cv::Mat(cv::Size(width, height), type, (uchar*)data);
+	return res;
+}
+
+
+cv::Mat skeletonizeMorph(cv::Mat *binaryImg)
+{
+	cv::Mat skel(binaryImg->size(), CV_8UC1, cv::Scalar(0));
+	cv::Mat temp(binaryImg->size(), CV_8UC1);
+
+	cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
+
+	bool done;
+	do
+	{
+		cv::morphologyEx(*binaryImg, temp, cv::MORPH_OPEN, element);
+		cv::bitwise_not(temp, temp);
+		cv::bitwise_and(*binaryImg, temp, temp);
+		cv::bitwise_or(skel, temp, skel);
+		cv::erode(*binaryImg, *binaryImg, element);
+
+		double max;
+		cv::minMaxLoc(*binaryImg, 0, &max);
+		done = (max == 0);
+	} while (!done);
+
+	return skel;
+}
+
+class Box3x3
+{
+public:
+	uchar p[9];
+
+	Box3x3(cv::Mat mat, cv::Point point)
+	{
+		cv::Point poi = point + cv::Point(1, 1);
+		cv::Mat padd(mat.rows+2,mat.cols+2, CV_8U, cv::Scalar(0));
+		mat.copyTo(padd(cv::Rect(1, 1, mat.cols, mat.rows)));
+		p[0] = padd.at<uchar>(poi);
+		p[1] = padd.at<uchar>(poi + cv::Point(0, -1));
+		p[2] = padd.at<uchar>(poi + cv::Point(1, -1));
+		p[3] = padd.at<uchar>(poi + cv::Point(1, 0));
+		p[4] = padd.at<uchar>(poi + cv::Point(1, 1));
+		p[5] = padd.at<uchar>(poi + cv::Point(0, 1));
+		p[6] = padd.at<uchar>(poi + cv::Point(-1, 1));
+		p[7] = padd.at<uchar>(poi + cv::Point(-1, 0));
+		p[8] = padd.at<uchar>(poi + cv::Point(-1, -1));
+	}
+};
+
+void zhangSuenThinningIteration(cv::Mat *img, bool odd)
+{
+	cv::Mat chng(img->size(), CV_8U);
+	img->copyTo(chng);
+
+	for (int y = 0; y < img->size().height; y++)
+	{
+		for (int x = 0; x < img->size().width; x++)
+		{
+			if(img->at<uchar>(cv::Point(x, y)) != 0)
+			{
+				Box3x3 box(*img, cv::Point(x, y));
+
+				//for (int i = 0; i < 9; i++)
+				//	cout << (int)box.p[i] << endl;
+
+				int A = (box.p[8] == 0 && box.p[1] == 1) + (box.p[1] == 0 && box.p[2] == 1) +
+					(box.p[2] == 0 && box.p[3] == 1) + (box.p[3] == 0 && box.p[4] == 1) +
+					(box.p[4] == 0 && box.p[5] == 1) + (box.p[5] == 0 && box.p[6] == 1) +
+					(box.p[6] == 0 && box.p[7] == 1) + (box.p[7] == 0 && box.p[8] == 1);
+
+				int B = box.p[1] + box.p[2] + box.p[3] + box.p[4] +
+					box.p[5] + box.p[6] + box.p[7] + box.p[8];
+
+				int m1, m2;
+				if (odd)
+				{
+					m1 = box.p[1] * box.p[3] * box.p[5];
+					m2 = box.p[3] * box.p[5] * box.p[7];
+				}
+				else
+				{
+					m1 = box.p[1] * box.p[3] * box.p[7];
+					m2 = box.p[1] * box.p[5] * box.p[7];
+				}
+
+				//cout << "A: " << A << endl;
+				//cout << "B: " << B << endl;
+				//cout << "m1: " << m1 << endl;
+				//cout << "m2: " << m2 << endl;
+
+				//cout << "(" << x << "," << y << ")" << endl;
+				//char b;
+				//cin >> b;
+
+				if (2 <= B && B <= 6 && A == 1 && m1 == 0 && m2 == 0) // <-- det här inträffar aldrig =/
+				{
+					chng.at<uchar>(cv::Point(x, y)) = 0;
+				}
+
+				/*
+				if(odd)
+				{
+					int C = int(~box.p[2] & (box.p[3] | box.p[4])) +
+						int(~box.p[4] & (box.p[5] | box.p[6])) +
+						int(~box.p[6] & (box.p[7] | box.p[8])) +
+						int(~box.p[8] & (box.p[1] | box.p[2]));
+					if (C == 1) {
+						/// calculate N
+						int N1 = int(box.p[1] | box.p[2]) +
+							int(box.p[3] | box.p[4]) +
+							int(box.p[5] | box.p[6]) +
+							int(box.p[7] | box.p[8]);
+						int N2 = int(box.p[2] | box.p[3]) +
+							int(box.p[4] | box.p[5]) +
+							int(box.p[6] | box.p[7]) +
+							int(box.p[8] | box.p[1]);
+						int N = min(N1, N2);
+						if ((N == 2) || (N == 3)) {
+							int E = (box.p[6] | box.p[7] | ~box.p[1]) & box.p[8];
+							if (E == 0) {
+								chng.at<uchar>(cv::Point(x, y)) = 0;
+							}
+						}
+					}
+				}
+				else
+				{
+					int C = int(~box.p[2] & (box.p[3] | box.p[4])) +
+						int(~box.p[4] & (box.p[5] | box.p[6])) +
+						int(~box.p[6] & (box.p[7] | box.p[8])) +
+						int(~box.p[8] & (box.p[1] | box.p[2]));
+					if (C == 1) {
+						/// calculate N
+						int N1 = int(box.p[1] | box.p[2]) +
+							int(box.p[3] | box.p[4]) +
+							int(box.p[5] | box.p[6]) +
+							int(box.p[7] | box.p[8]);
+						int N2 = int(box.p[2] | box.p[3]) +
+							int(box.p[4] | box.p[5]) +
+							int(box.p[6] | box.p[7]) +
+							int(box.p[8] | box.p[1]);
+						int N = min(N1, N2);
+						if ((N == 2) || (N == 3)) {
+							int E = (box.p[6] | box.p[7] | ~box.p[1]) & box.p[8];
+							if (E == 0) {
+								chng.at<uchar>(cv::Point(x, y)) = 0;
+							}
+
+							int c3 = (box.p[2] | box.p[3] | ~box.p[5]) & box.p[4];
+							if (c3 == 0) {
+								chng.at<uchar>(cv::Point(x, y)) = 0;
+							}
+						}
+					}
+				}
+				*/
+			}
+		}
+	}
+	chng.copyTo(*img);
+}
+
+cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg)
+{
+	cv::Mat img(binaryImg.size(),CV_8U);
+	binaryImg.copyTo(img);
+	
+
+	cv::Mat prev = cv::Mat::zeros(img.size(), CV_8U);
+	cv::Mat diff;
+
+	
+	do
+	{
+		zhangSuenThinningIteration(&img, true);
+		zhangSuenThinningIteration(&img, false);
+
+		cv::absdiff(img, prev, diff);
+		img.copyTo(prev);
+	} while (cv::countNonZero(diff) > 0);
+
+	return img;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void thinningIteration(cv::Mat& img, int iter)
+{
+	CV_Assert(img.channels() == 1);
+	CV_Assert(img.depth() != sizeof(uchar));
+	CV_Assert(img.rows > 3 && img.cols > 3);
+
+	cv::Mat marker = cv::Mat::zeros(img.size(), CV_8UC1);
+
+	int nRows = img.rows;
+	int nCols = img.cols;
+
+	if (img.isContinuous()) {
+		nCols *= nRows;
+		nRows = 1;
+	}
+
+	int x, y;
+	uchar *pAbove;
+	uchar *pCurr;
+	uchar *pBelow;
+	uchar *nw, *no, *ne;    // north (pAbove)
+	uchar *we, *me, *ea;
+	uchar *sw, *so, *se;    // south (pBelow)
+
+	uchar *pDst;
+
+	// initialize row pointers
+	pAbove = NULL;
+	pCurr = img.ptr<uchar>(0);
+	pBelow = img.ptr<uchar>(1);
+
+	for (y = 1; y < img.rows - 1; ++y) {
+		// shift the rows up by one
+		pAbove = pCurr;
+		pCurr = pBelow;
+		pBelow = img.ptr<uchar>(y + 1);
+
+		pDst = marker.ptr<uchar>(y);
+
+		// initialize col pointers
+		no = &(pAbove[0]);
+		ne = &(pAbove[1]);
+		me = &(pCurr[0]);
+		ea = &(pCurr[1]);
+		so = &(pBelow[0]);
+		se = &(pBelow[1]);
+
+		for (x = 1; x < img.cols - 1; ++x) {
+			// shift col pointers left by one (scan left to right)
+			nw = no;
+			no = ne;
+			ne = &(pAbove[x + 1]);
+			we = me;
+			me = ea;
+			ea = &(pCurr[x + 1]);
+			sw = so;
+			so = se;
+			se = &(pBelow[x + 1]);
+
+			int A = (*no == 0 && *ne == 1) + (*ne == 0 && *ea == 1) +
+				(*ea == 0 && *se == 1) + (*se == 0 && *so == 1) +
+				(*so == 0 && *sw == 1) + (*sw == 0 && *we == 1) +
+				(*we == 0 && *nw == 1) + (*nw == 0 && *no == 1);
+			int B = *no + *ne + *ea + *se + *so + *sw + *we + *nw;
+			int m1 = iter == 0 ? (*no * *ea * *so) : (*no * *ea * *we);
+			int m2 = iter == 0 ? (*ea * *so * *we) : (*no * *so * *we);
+
+			if (A == 1 && (B >= 2 && B <= 6) && m1 == 0 && m2 == 0)
+				pDst[x] = 1;
+		}
+	}
+
+	img &= ~marker;
+}
+
+/**
+* Function for thinning the given binary image
+*
+* Parameters:
+* 		src  The source image, binary with range = [0,255]
+* 		dst  The destination image
+*/
+void thinning(const cv::Mat& src, cv::Mat& dst)
+{
+	dst = src.clone();
+	dst /= 255;         // convert to binary image
+
+	cv::Mat prev = cv::Mat::zeros(dst.size(), CV_8UC1);
+	cv::Mat diff;
+
+	do {
+		thinningIteration(dst, 0);
+		thinningIteration(dst, 1);
+		cv::absdiff(dst, prev, diff);
+		dst.copyTo(prev);
+	} while (cv::countNonZero(diff) > 0);
+
+	dst *= 255;
 }

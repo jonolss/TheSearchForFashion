@@ -23,6 +23,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>OpenCV_test</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>The_Search_For_Fashion</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -149,14 +150,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClothArticle.cpp" />
-    <ClCompile Include="FrontEnd.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="ImageSearcher.cpp" />
     <ClCompile Include="ImageUtilities.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothArticle.h" />
-    <ClInclude Include="FrontEnd.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="ImageSearcher.h" />
     <ClInclude Include="ImageUtilities.h" />
   </ItemGroup>

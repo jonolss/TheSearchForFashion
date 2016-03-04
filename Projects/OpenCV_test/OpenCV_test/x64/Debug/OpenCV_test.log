@@ -1,14 +1,3 @@
-﻿  ImageSearcher.cpp
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(53): warning C4101: 'cAllMessages': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(465): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(470): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(379): warning C4101: 'e': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(434): warning C4101: 'e': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(464): warning C4101: 'tmp': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(549): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(554): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(548): warning C4101: 'tmp': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(726): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(908): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(924): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-  OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Debug\OpenCV_test.exe
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Main.cpp
+  OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Debug\The_Search_For_Fashion.exe

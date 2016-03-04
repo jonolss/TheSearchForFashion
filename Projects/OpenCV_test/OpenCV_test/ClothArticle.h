@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include "ImageUtilities.h"
+#include "Config.h"
 
 
 
@@ -47,13 +48,18 @@ enum art_sleeveType
 class ImageFeatures
 {
 private:
-	cv::Mat hsvHists[3];
-	cv::Mat rgbHists[3];
-	cv::Mat edgeHists[2];
+	vector<cv::Mat> hsvHists;
+	vector<cv::Mat> rgbHists;
+	vector<cv::Mat> edgeHists;
 public:
 	ImageFeatures();
 	ImageFeatures(cv::Mat image, bool png);
+	ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge);
 	~ImageFeatures();
+
+	vector<cv::Mat> getRGBHists();
+	vector<cv::Mat> getHSVHists();
+	vector<cv::Mat> getEdgeHists();
 
 	cv::Mat getRGBHist(int ch);
 	cv::Mat getHSVHist(int ch);
@@ -65,16 +71,17 @@ public:
 class ClothArticle
 {
 private:
-	string path;
-	ImageFeatures imgFeats;
 	string id;
+	string path;
 	art_color color;
 	art_clType clType;
 	art_sleeveType sleeveType;
+	ImageFeatures *imgFeats;
 
 	
 public:
 	ClothArticle(string id, string path, string color, string clType, int sleeveType);
+	ClothArticle(string id, string path, art_color color, art_clType clType, art_sleeveType sleeveType, ImageFeatures *imgFeats);
 	ClothArticle(string id, string path);
 	~ClothArticle();
 
@@ -88,7 +95,7 @@ public:
 	art_color      getColor();
 	art_clType     getClType();
 	art_sleeveType getSleeveType();
-	ImageFeatures  getImgFeats();
+	ImageFeatures* getImgFeats();
 
 	vector<int> getClasses();
 };
@@ -101,7 +108,23 @@ string to_string(art_color val);
 string to_string(art_clType val);
 string to_string(art_sleeveType val);
 
-vector<ClothArticle *> readCatalogeFromFile(string path, bool partial);
+vector<ClothArticle *> *readCatalogeFromFile(string path, bool partial);
 ClothArticle *inputParser(string input, bool partial);
+
+void saveCataloge(vector<ClothArticle*> *input, string path);
+void saveCataloge(vector<ClothArticle*> *input, ofstream *outFile);
+
+vector<ClothArticle*> *loadCataloge(string path);
+vector<ClothArticle*> *loadCataloge(ifstream *inFile);
+
+void saveClArticle(ClothArticle *input, string path);
+void saveClArticle(ClothArticle *input, ofstream *outFile);
+
+ClothArticle *loadClArticle(string path);
+ClothArticle *loadClArticle(ifstream *inFile);
+
+
+void saveImgFeats(ImageFeatures *input, ofstream *outFile);
+ImageFeatures *loadImgFeats(ifstream *inFile);
 
 #endif

@@ -1,5 +1,10 @@
 #include "ClothArticle.h"
 
+/** Private declarations.
+*
+*/
+void saveImgFeats(ImageFeatures *input, ofstream *outFile);
+ImageFeatures *loadImgFeats(ifstream *inFile);
 
 /**Standard constructor.
 *
@@ -22,7 +27,7 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 		cv::Mat ch, hs;
 		ch = getChannel(hsvImg, i);
 		hs = getHsvHist(ch, i, 32);
-		hsvHists[i] = normalizeHist(hs);
+		hsvHists.push_back(normalizeHist(hs));
 	}
 
 	for (int i = 0; i < 3; i++)
@@ -30,7 +35,7 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 		cv::Mat ch, hs;
 		ch = getChannel(image, i);
 		hs = get8bitHist(ch, 32);
-		rgbHists[i] = normalizeHist(hs);
+		rgbHists.push_back(normalizeHist(hs));
 	}
 
 	cv::Mat imgGray;
@@ -66,22 +71,79 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 	
 	
 	cv::Mat imgBlur = preformGaussianBlur(imgGray);
-	cv::Mat edges = preformCanny(imgBlur);
+	cv::Mat edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	cv::Mat edgesBlur = preformGaussianBlur(edges);
 
-	edgeHists[0] = createlocalEdgeImageHist(edges, 30);
+
+	edgeHists.push_back(createlocalEdgeImageHist(edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
 
 	imgBlur = preformGaussianBlur(binary);
-	edges = preformCanny(imgBlur);
+	edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	edgesBlur = preformGaussianBlur(edges);
 
-	edgeHists[1] = createlocalEdgeImageHist(/*binary*/edges, 30);
+	edgeHists.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
 
 	//fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
+}
+
+/**Constructor for making ImageFeatures.
+*
+* \param rgb Histogram over the images rgb channels.
+* \param hsv Histogram over the images hsv channels.
+* \param edge Histogram over the images edges.
+*/
+ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge)
+{
+	this->rgbHists  = rgb;
+	this->hsvHists  = hsv;
+	this->edgeHists = edge;
 }
 
 /**Standard desturctor.
 *
 */
-ImageFeatures::~ImageFeatures(){}
+ImageFeatures::~ImageFeatures()
+{
+	while (!hsvHists.empty())
+	{
+		delete hsvHists.back().data;
+		hsvHists.back().release();
+		hsvHists.pop_back();
+	}
+	hsvHists.clear();
+	while (!rgbHists.empty())
+	{
+		delete rgbHists.back().data;
+		rgbHists.back().release();
+		rgbHists.pop_back();
+	}
+	rgbHists.clear();
+	while (!edgeHists.empty())
+	{
+		delete edgeHists.back().data;
+		edgeHists.back().release();
+		edgeHists.pop_back();
+	}
+	edgeHists.clear();
+}
+
+/**Returns vector with the rgb histograms of the article.
+*
+* \return The histograms of the channels.
+*/
+vector<cv::Mat> ImageFeatures::getRGBHists()  { return rgbHists; }
+
+/**Returns vector with the hsv histograms of the article.
+*
+* \return The histograms of the channels.
+*/
+vector<cv::Mat> ImageFeatures::getHSVHists()  { return hsvHists; }
+
+/**Returns vector with the edge histograms of the article.
+*
+* \return The histograms of the edges.
+*/
+vector<cv::Mat> ImageFeatures::getEdgeHists() { return edgeHists; }
 
 /**Returns the n'th rgb histogram of the article.
 *
@@ -123,25 +185,44 @@ ClothArticle::ClothArticle(string id, string path)
 */
 ClothArticle::ClothArticle(string id, string path, string color, string clType, int sleeveType)
 {
-	this->id = id;
-	this->color = checkColor(color);
-	this->clType = checkClType(clType);
+	this->id         = id;
+	this->color      = checkColor(color);
+	this->clType     = checkClType(clType);
 	this->sleeveType = checkSleeveType(sleeveType);
-	this->path = path;
+	this->path       = path;
 	cv::Mat tmp = cv::imread(path, cv::IMREAD_UNCHANGED);
 	bool png = path.find(".png") != string::npos;
 	if (png)
 		filterAlphaArtifacts(&tmp);
-	cv::Mat tmp2 = resizeImg(tmp,300,300);
+	cv::Mat tmp2 = resizeImg(tmp, IMAGE_SIZE_XY, IMAGE_SIZE_XY);
 
-	this->imgFeats = ImageFeatures(tmp2,png);
+	this->imgFeats = new ImageFeatures(tmp2,png);
 
+}
+
+/**Constructor for making a ClothArticle.
+*
+* \param id Id of the article.
+* \param path Path to the image of the article.
+* \param color Color of the article.
+* \param clType Clothing type of the article.
+* \param sleeveType Sleeve type of the article.
+* \oaram imgFeats The ImageFeatures of the image.
+*/
+ClothArticle::ClothArticle(string id, string path, art_color color, art_clType clType, art_sleeveType sleeveType, ImageFeatures *imgFeats)
+{
+	this->id         = id;
+	this->color      = color;
+	this->clType     = clType;
+	this->sleeveType = sleeveType;
+	this->path       = path;
+	this->imgFeats   = imgFeats;
 }
 
 /**Standard desturctor.
 *
 */
-ClothArticle::~ClothArticle() {}
+ClothArticle::~ClothArticle() { delete imgFeats; }
 
 
 /**Returns the id of the article.
@@ -167,7 +248,7 @@ cv::Mat ClothArticle::getImage()
 	{
 		filterAlphaArtifacts(&tmp);
 	}
-	cv::Mat tmp2 = resizeImg(tmp,300,300);
+	cv::Mat tmp2 = resizeImg(tmp, IMAGE_SIZE_XY, IMAGE_SIZE_XY);
 	return tmp2;
 }
 
@@ -208,7 +289,7 @@ void ClothArticle::setSleeveType(art_sleeveType sleeveType) { this->sleeveType =
 *
 * \return ImageFeatures of the article.
 */
-ImageFeatures ClothArticle::getImgFeats() { return imgFeats; }
+ImageFeatures *ClothArticle::getImgFeats() { return imgFeats; }
 
 /**Returns the article's classes.
 *
@@ -486,16 +567,16 @@ string to_string(art_sleeveType val)
 * \param partial When true makes ClothArticle with only id and path.
 * \return A vector of all ClothArticle in the cataloge.
 */
-vector<ClothArticle *> readCatalogeFromFile(string path, bool partial)
+vector<ClothArticle *> *readCatalogeFromFile(string path, bool partial)
 {
 	ifstream inputFile(path, ios::in);
 
-	vector<ClothArticle*> allArticles;
+	vector<ClothArticle*> *allArticles = new vector<ClothArticle*>();
 
 	string line;
 	while (getline(inputFile, line))
 	{
-		allArticles.push_back(inputParser(line, partial));
+		allArticles->push_back(inputParser(line, partial));
 	}
 	inputFile.close();
 
@@ -512,7 +593,6 @@ ClothArticle *inputParser(string input, bool partial)
 {
 
 	//#7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1
-	string inp = "#V7;20;3;6;2#6567570./images/6567570.jpgVitBlouse-1";
 
 	string::iterator it = input.begin();
 	if (*it++ != '#')
@@ -607,4 +687,276 @@ ClothArticle *inputParser(string input, bool partial)
 		return new ClothArticle(id, path);
 	}
 	return new ClothArticle(id, path, color, clType, sleeveType);
+}
+
+void saveCataloge(vector<ClothArticle*> *input, string path)
+{
+	ofstream outFile(path, ios::out | ios::binary | ios::ate);
+	if (outFile.is_open())
+	{
+		saveCataloge(input, &outFile);
+		outFile.close();
+	}
+	else
+	{
+		cout << "Couldn't open file." << endl;
+	}
+}
+void saveCataloge(vector<ClothArticle*> *input, ofstream *outFile)
+{
+	char *data = (char*)calloc(1, sizeof(int));
+	*(int*)data = input->size();
+	outFile->write(data, sizeof(int));
+	free(data);
+
+	for (int i = 0; i < input->size(); i++)
+	{
+		saveClArticle(input->at(i), outFile);
+	}
+}
+
+vector<ClothArticle*> *loadCataloge(string path)
+{
+	ifstream inFile(path, ios::in | ios::binary);
+	if (inFile.is_open())
+	{
+		vector<ClothArticle*> *ret = loadCataloge(&inFile);
+		inFile.close();
+		return ret;
+	}
+	else
+	{
+		cout << "Couldn't open file." << endl;
+		return NULL;
+	}
+}
+
+vector<ClothArticle*> *loadCataloge(ifstream *inFile)
+{
+	char *data = (char*)calloc(1, sizeof(int));
+	inFile->read(data, sizeof(int));
+	int size = *(int*)data;
+	free(data);
+
+	vector<ClothArticle*> *ret = new vector<ClothArticle*>();
+	for (int i = 0; i < size; i++)
+	{
+		ret->push_back(loadClArticle(inFile));
+	}
+	return ret;
+}
+
+void saveClArticle(ClothArticle *input, string path)
+{
+	ofstream outFile(path, ios::out | ios::binary | ios::ate);
+	if (outFile.is_open())
+	{
+		saveClArticle(input, &outFile);
+		outFile.close();
+	}
+	else
+	{
+		cout << "Couldn't open file." << endl;
+	}
+}
+
+void saveClArticle(ClothArticle *input, ofstream *outFile)
+{
+	string id = input->getId();
+	string path = input->getPath();
+	art_color color = input->getColor();
+	art_clType clType = input->getClType();
+	art_sleeveType sleeveType = input->getSleeveType();
+	ImageFeatures *imgFeats = input->getImgFeats();
+
+	int idLength = id.length();
+	int pathLength = path.length();
+
+
+	int size = 2 * sizeof(int) + ((idLength + 1) + (pathLength + 1)) * sizeof(char);
+	char *data = (char*)calloc(size, sizeof(char));
+
+	*(int*)data = idLength;
+	strcpy((data + sizeof(int)), id.c_str());
+	*(int*)(data + sizeof(int) + (idLength + 1) * sizeof(char)) = pathLength;
+	strcpy((data + 2 * sizeof(int) + (idLength + 1) * sizeof(char)), path.c_str());
+
+	outFile->write(data, size);
+	free(data);
+
+	size = 3 * sizeof(int);
+	data = (char*)calloc(size, sizeof(char));
+
+	*(int*)data = color;
+	*(int*)(data + sizeof(int)) = clType;
+	*(int*)(data + 2 * sizeof(int)) = sleeveType;
+
+	outFile->write(data, size);
+	free(data);
+
+	saveImgFeats(input->getImgFeats(), outFile);
+}
+
+
+ClothArticle *loadClArticle(string path)
+{
+	ifstream inFile(path, ios::in | ios::binary);
+	if (inFile.is_open())
+	{
+
+		ClothArticle *ret = loadClArticle(&inFile);
+		inFile.close();
+		return ret;
+	}
+	else
+	{
+		cout << "Couldn't open file." << endl;
+		return NULL;
+	}
+}
+
+ClothArticle *loadClArticle(ifstream *inFile)
+{
+	string id;
+	string path;
+	art_color color;
+	art_clType clType;
+	art_sleeveType sleeveType;
+	ImageFeatures *imgFeats;
+
+	int idLength;
+	int pathLength;
+
+
+	int size = sizeof(int);
+	char *data = (char*)calloc(size, sizeof(char));
+	inFile->read(data, size);
+	idLength = *(int*)data;
+	free(data);
+
+	size = idLength + 1;
+	data = (char*)calloc(size, sizeof(char));
+	inFile->read(data, size);
+	id = string(data, size - 1);
+	free(data);
+
+
+	size = sizeof(int);
+	data = (char*)calloc(size, sizeof(char));
+	inFile->read(data, size);
+	pathLength = *(int*)data;
+	free(data);
+
+	size = pathLength + 1;
+	data = (char*)calloc(size, sizeof(char));
+	inFile->read(data, size);
+	path = string(data, size - 1);
+	free(data);
+
+
+	size = sizeof(int) * 3;
+	data = (char*)calloc(size, sizeof(char));
+	inFile->read(data, size);
+	color = (art_color)*(int*)data;
+	clType = (art_clType)*(int*)(data + sizeof(int));
+	sleeveType = (art_sleeveType)*(int*)(data + 2 * sizeof(int));
+	free(data);
+
+
+	imgFeats = loadImgFeats(inFile);
+
+	return new ClothArticle(id, path, color, clType, sleeveType, imgFeats);
+}
+
+/** Saves the ImageFeatures to an open file.
+*
+* \param input The ImageFeatures that is going to be saved.
+* \param outFile An open outstream to a file.
+*/
+void saveImgFeats(ImageFeatures *input, ofstream *outFile)
+{
+	vector<cv::Mat> hists = input->getRGBHists();
+	char *data = (char*)calloc(1, sizeof(int));
+	*(int*)data = hists.size();
+	outFile->write(data, sizeof(int));
+	for (int i = 0; i < hists.size(); i++)
+	{
+		saveMat(hists[i], outFile);
+	}
+	
+
+	hists = input->getHSVHists();
+	*(int*)data = hists.size();
+	outFile->write(data, sizeof(int));
+	for (int i = 0; i < hists.size(); i++)
+	{
+		saveMat(hists[i], outFile);
+	}
+
+	hists = input->getEdgeHists();
+	*(int*)data = hists.size();
+	outFile->write(data, sizeof(int));
+	for (int i = 0; i < hists.size(); i++)
+	{
+		saveMat(hists[i], outFile);
+	}
+	free(data);
+}
+
+/** Loads an ImageFeatures from an open file.
+*
+* \param inFile An open instream to a file.
+*/
+ImageFeatures *loadImgFeats(ifstream *inFile)
+{
+	int size;
+	char *data = (char*)calloc(1, sizeof(int));
+	inFile->read(data, sizeof(int));
+	size = *(int*)data;
+	vector<cv::Mat> rgb;
+	for (int i = 0; i < size; i++)
+	{
+		rgb.push_back(loadMat(inFile));
+	}
+
+	inFile->read(data, sizeof(int));
+	size = *(int*)data;
+	vector<cv::Mat> hsv;
+	for (int i = 0; i < size; i++)
+	{
+		hsv.push_back(loadMat(inFile));
+	}
+
+	inFile->read(data, sizeof(int));
+	size = *(int*)data;
+	vector<cv::Mat> edge;
+	for (int i = 0; i < size; i++)
+	{
+		edge.push_back(loadMat(inFile));
+	}
+	free(data);
+
+	ImageFeatures *res = new ImageFeatures(rgb, hsv, edge);
+
+	
+	while (!hsv.empty())
+	{
+		hsv.back().release();
+		hsv.pop_back();
+	}
+	hsv.clear();
+	while (!rgb.empty())
+	{
+		rgb.back().release();
+		rgb.pop_back();
+	}
+	rgb.clear();
+	while (!edge.empty())
+	{
+		edge.back().release();
+		edge.pop_back();
+	}
+	edge.clear();
+	
+	return res;
 }
