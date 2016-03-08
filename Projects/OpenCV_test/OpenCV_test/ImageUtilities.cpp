@@ -11,6 +11,17 @@ cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size)
 	int nVerBoxs = edges.size().height / size;
 	int nHorBoxs = edges.size().width / size;
 	int leiHistSize = nVerBoxs * nHorBoxs;
+
+
+	cv::Mat tmp = resizeImg(edges, nHorBoxs, nVerBoxs);
+
+	tmp = tmp.reshape(1, 1);
+	tmp = tmp.t();
+
+	cv::Mat tmp2(tmp.size(), CV_32FC1);
+	for (int i = 0; i < tmp.size().height; i++)
+		tmp2.at<float>(i, 0) = ((float)tmp.at<uchar>(i, 0)) / (float)255;
+
 	//vector<float> leiHist(leiHistSize);
 	cv::Mat leiHist(leiHistSize, 1, CV_32FC1);
 
@@ -30,7 +41,8 @@ cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size)
 			leiHist.at<float>(s * nVerBoxs + t, 0) = (float)tot / (float)(size*size);
 		}
 	}
-	return leiHist;
+
+	return tmp2;
 }
 
 /**Sets all pixels with a alpha value greater than 0 to the color white(255,255,255).
@@ -689,4 +701,130 @@ void thinning(const cv::Mat& src, cv::Mat& dst)
 	} while (cv::countNonZero(diff) > 0);
 
 	dst *= 255;
+}
+
+
+void onlyBackground(cv::Mat &src, cv::Mat &dst)
+{
+	dst = cv::Mat::ones(src.size(), CV_8U);
+	cv::Mat checked = cv::Mat::zeros(src.size(), CV_8U);
+
+	stack<cv::Point> next;
+	next.push(cv::Point(0, 0));
+	checked.at<uchar>(cv::Point(0, 0)) = 1;
+
+	next.push(cv::Point(0, src.rows-1));
+	checked.at<uchar>(cv::Point(0, src.rows - 1)) = 1;
+
+	next.push(cv::Point(src.cols-1, 0));
+	checked.at<uchar>(cv::Point(src.cols - 1, 0)) = 1;
+
+	next.push(cv::Point(src.cols-1, src.rows-1));
+	checked.at<uchar>(cv::Point(src.cols - 1, src.rows - 1)) = 1;
+	
+
+	while (!next.empty())
+	{
+		cv::Point curr = next.top();
+		int x = curr.x;
+		int y = curr.y;
+		next.pop();
+		dst.at<uchar>(curr) = 0;
+
+		if (x != 0 && !checked.at<uchar>(cv::Point(x - 1, y)) && src.at<uchar>(cv::Point(x - 1, y)) == 0)
+		{
+			next.push(cv::Point(x - 1, y));
+			checked.at<uchar>(cv::Point(x - 1, y)) = 1;
+		}
+
+		if (x != (src.size().width - 1) && !checked.at<uchar>(cv::Point(x + 1, y)) && src.at<uchar>(cv::Point(x + 1, y)) == 0)
+		{
+			next.push(cv::Point(x + 1, y));
+			checked.at<uchar>(cv::Point(x + 1, y)) = 1;
+		}
+
+		if (y != 0 && !checked.at<uchar>(cv::Point(x, y - 1)) && src.at<uchar>(cv::Point(x, y - 1)) == 0)
+		{
+			next.push(cv::Point(x, y - 1));
+			checked.at<uchar>(cv::Point(x, y - 1)) = 1;
+		}
+			
+		if (y != (src.size().height - 1) && !checked.at<uchar>(cv::Point(x, y + 1)) && src.at<uchar>(cv::Point(x, y + 1)) == 0)
+		{
+			next.push(cv::Point(x, y + 1));
+			checked.at<uchar>(cv::Point(x, y + 1)) = 1;
+		}
+			
+	}
+}
+
+int maxHorizontalEdges(cv::Mat edgeImg, int minDist, int minHeight)
+{
+	int max[] = { 0,0,0,0,0,0,0,0,0,0 };
+
+	for (int y = 0; y < edgeImg.rows; y++)
+	{
+		int edges = 0;
+		int step = minDist;
+		for (int x = 0; x < edgeImg.cols; x++)
+		{
+			uchar current = edgeImg.at<uchar>(cv::Point(x, y));
+			if (++step >= minDist)
+			{
+				if (current)
+				{
+					edges++;
+				}
+			}
+			
+			if (current)
+			{
+				step = 0;
+			}
+		}
+
+		switch (edges)
+		{
+			case 0:
+				max[0]++;
+				break;
+			case 1:
+				max[1]++;
+				break;
+			case 2:
+				max[2]++;
+				break;
+			case 3:
+				max[3]++;
+				break;
+			case 4:
+				max[4]++;
+				break;
+			case 5:
+				max[5]++;
+				break;
+			case 6:
+				max[6]++;
+				break;
+			case 7:
+				max[7]++;
+				break;
+			case 8:
+				max[8]++;
+				break;
+			case 9:
+				max[9]++;
+				break;
+			default:
+				break;
+		}
+	}
+
+	int biggest = 0;
+	for (int i = 0; i < 10; i++)
+	{
+		if(max[i] >= minHeight)
+			biggest = i;
+	}
+	return biggest;
 }

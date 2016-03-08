@@ -50,21 +50,26 @@ class ImageFeatures
 private:
 	vector<cv::Mat> hsvHists;
 	vector<cv::Mat> rgbHists;
-	vector<cv::Mat> edgeHists;
+	vector<cv::Mat> edgeVect;
+	vector<cv::Mat> binVect;
+	int maxHorizontal;
 public:
 	ImageFeatures();
 	ImageFeatures(cv::Mat image, bool png);
-	ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge);
+	ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge, vector<cv::Mat> bin);
 	~ImageFeatures();
 
 	vector<cv::Mat> getRGBHists();
 	vector<cv::Mat> getHSVHists();
-	vector<cv::Mat> getEdgeHists();
+	vector<cv::Mat> getEdgeVect();
+	vector<cv::Mat> getBinVect();
+
+	int getMaxHorizontal();
 
 	cv::Mat getRGBHist(int ch);
 	cv::Mat getHSVHist(int ch);
-	cv::Mat getEdgeHist(int n);
-
+	cv::Mat getEdgeVect(int n);
+	cv::Mat getBinVect(int n);
 
 };
 

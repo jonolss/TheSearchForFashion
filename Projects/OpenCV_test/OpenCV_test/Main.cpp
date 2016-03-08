@@ -241,6 +241,88 @@ int main(int argc, char* argv[])
 		
 		return 0;
 	}
+	else if (string(argv[1]) == "--kaze")
+	{
+		cv::Mat src = cv::imread("testfiles/shirt1.jpg");
+		cv::Mat img = resizeImg(src);
+		if (!src.data)
+			return -1;
+
+		//cv::ak  
+
+
+	}
+	else if (string(argv[1]) == "--kov")
+	{
+		cv::Mat src = cv::imread("testfiles/lindex2.jpg");
+		cv::Mat img = resizeImg(src);
+		if (!src.data)
+			return -1;
+
+		cv::Mat bw;
+		cv::cvtColor(img, bw, CV_BGR2GRAY);
+
+		cv::Mat bin;
+		cv::threshold(bw, bin, 240, 255, CV_THRESH_BINARY_INV);
+		
+		cv::Mat gau1, gau2;
+		cv::GaussianBlur(bw, gau1, cv::Size(1, 1), 0);
+		cv::GaussianBlur(bw, gau2, cv::Size(3, 3), 0);
+
+		cv::Mat res;
+		cv::absdiff(gau2, gau1, res);
+
+		cv::equalizeHist(res, res);
+
+		
+		////////////////
+		cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
+			cv::Size(2 * 3/*erosion_size*/ + 1, 2 * 3/*erosion_size*/ + 1),
+			cv::Point(3, 3/*erosion_size, erosion_size*/));
+
+		cv::Mat erod;
+		dilate(bin, erod, element);
+
+		erode(erod, erod, element);
+		////////////////
+
+		
+
+		cv::Mat out;
+		onlyBackground(erod, out);
+		out *= 255;
+
+		cv::Mat edge = preformCanny(out, 80, 140);
+
+		
+		cv::Mat ssample = resizeImg(out, 50, 50);
+		cv::Mat upsample;
+		cv::resize(ssample, upsample, cv::Size(300,300), 0.0, 0.0, cv::INTER_NEAREST);
+
+		cv::imshow("ssample", ssample);
+		cv::imshow("upsample", upsample);
+
+		cv::imshow("out", out);
+		cv::imshow("erod", erod);
+
+		cv::imshow("bin", bin);
+		cv::imshow("Gray", bw);
+		cv::imshow("DoG", res);
+		cv::imshow("edge", edge);
+
+		cv::Mat kov;
+		cv::bitwise_and(res, bin, kov);
+
+		cv::Mat vok;
+		cv::bitwise_and(res, edge, vok);
+
+
+		cv::imshow("kov", kov);
+		cv::imshow("vok", vok);
+
+
+		cv::waitKey();
+	}
 	else if (string(argv[1]) == "--matt")
 	{
 

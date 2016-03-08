@@ -1,35 +1,16 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   ClothArticle.cpp
-ClothArticle.cpp(538): warning C4102: 'defualt': unreferenced label
-ClothArticle.cpp(708): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ClothArticle.cpp(772): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ClothArticle.cpp(773): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ClothArticle.cpp(880): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ClothArticle.cpp(889): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ClothArticle.cpp(897): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-  ImageSearcher.cpp
-ImageSearcher.cpp(46): warning C4101: 'cAllMessages': unreferenced local variable
-ImageSearcher.cpp(435): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(440): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(329): warning C4101: 'e': unreferenced local variable
-ImageSearcher.cpp(368): warning C4101: 'e': unreferenced local variable
-ImageSearcher.cpp(413): warning C4101: 'e': unreferenced local variable
-ImageSearcher.cpp(434): warning C4101: 'tmp': unreferenced local variable
-ImageSearcher.cpp(589): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(594): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(588): warning C4101: 'tmp': unreferenced local variable
-ImageSearcher.cpp(818): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(927): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1250): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1269): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1302): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1318): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-  ImageUtilities.cpp
-ImageUtilities.cpp(342): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-  Main.cpp
+ClothArticle.cpp(634): warning C4102: 'defualt': unreferenced label
+ClothArticle.cpp(804): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(868): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(869): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(976): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(985): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(993): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ClothArticle.cpp(1001): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   Generating code
-  83 of 1388 functions ( 6.0%) were compiled, the rest were copied from previous compilation.
-    5 functions were new in current compilation
-    38 functions had inline decision re-evaluated but remain unchanged
+  70 of 1530 functions ( 4.6%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    5 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Release\The_Search_For_Fashion.exe

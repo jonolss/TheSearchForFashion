@@ -9,6 +9,7 @@
 #include <fstream>
 #include <algorithm>
 #include <queue>
+#include <stack>
 #include <vector>
 
 
@@ -27,6 +28,8 @@ cv::Mat skeletonizeMorph(cv::Mat *binaryImg);
 cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg);
 
 void thinning(const cv::Mat& src, cv::Mat& dst);
+void onlyBackground(cv::Mat& src, cv::Mat& dst);
+int maxHorizontalEdges(cv::Mat edgeImg, int minDist, int minHeight);
 
 void filterAlphaArtifacts(cv::Mat *img);
 void saveMat(cv::Mat input, ofstream *outFile);

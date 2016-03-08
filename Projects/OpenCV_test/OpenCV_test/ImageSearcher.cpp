@@ -447,7 +447,28 @@ void frontend(string catalogePath)
 				}
 
 				cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
+				cv::Mat tmpImg3 = resizeImg(tmpImg, 300, 300);
 				cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
+
+				cv::cvtColor(tmpImg2, tmpImg2, CV_BGR2GRAY);
+
+				cv::threshold(tmpImg2, tmpImg2, 248, 255, CV_THRESH_BINARY_INV);
+				//cv::bitwise_not(tmpImg2, tmpImg2);
+				tmpImg2 = tmpImg2 * 255;
+
+				cv::Mat out;
+				onlyBackground(tmpImg2, out);
+				out *= 255;
+
+				cv::Mat edge = preformCanny(out, 80, 140);
+				cv::Mat edge2 = preformCanny(tmpImg2, 80, 140);
+
+				cv::namedWindow("Query EDGE", 1);
+				cv::imshow("Query EDGE", edge);
+
+				cv::namedWindow("Query EDGE2", 1);
+				cv::imshow("Query EDGE2", edge2);
+
 				cv::namedWindow("Query", 1);
 				cv::imshow("Query", tmpImg2);
 				for (int i = 0; i < results.size(); i++)
@@ -458,6 +479,19 @@ void frontend(string catalogePath)
 					if (hashTable[results[i]].find(".png") != string::npos)
 						filterAlphaArtifacts(&tmpImg);
 					tmpImg2 = resizeImg(tmpImg, 300, 300);
+
+					cv::Mat tmpImg3;
+					cv::cvtColor(tmpImg2, tmpImg3, CV_BGR2GRAY);
+					cv::threshold(tmpImg3, tmpImg3, 248, 255, CV_THRESH_BINARY_INV);
+					cv::Mat tmpImg4;
+					onlyBackground(tmpImg3, tmpImg4);
+					tmpImg4 *= 255;
+					tmpImg4 = preformGaussianBlur(tmpImg4);
+					tmpImg4 = preformCanny(tmpImg4, 80, 140);
+
+					
+					
+
 					cv::namedWindow("Result # " + to_string(i + 1), 1);
 					cv::imshow("Result # " + to_string(i + 1), tmpImg2);
 				}
@@ -782,7 +816,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 
 	vector<string> topResults;
 
-#ifdef _DEBUG
+#ifndef _DEBUG
 	cout << to_string(query->getClType()) << endl << to_string(query->getColor()) << endl;
 	if(false)
 	{
@@ -978,16 +1012,17 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	cv::Mat fVec;
 	ImageFeatures *inpFeats = input->getImgFeats();
 
-	fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 32 * 6, CV_32FC1);
+	fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 6 * 32, CV_32FC1);
 
-	cv::Mat tmp = inpFeats->getEdgeHist(0);
+	cv::Mat tmp = inpFeats->getEdgeVect(0);
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
 		fVec.at<float>(0, j) = tmp.at<float>(j, 0);
 	}
 
-	tmp = inpFeats->getEdgeHist(1);
+	tmp = inpFeats->getEdgeVect(1);
+	//tmp = inpFeats->getBinVect(0);
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
@@ -1011,85 +1046,6 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 		}
 	}
 
-
-	/*
-	if (fVecType == "Color")
-	{
-		fVec = cv::Mat(1, 32 * 6, CV_32F);
-		for (int j = 0; j < 6; j++)
-		{
-			cv::Mat tmp;
-			if (j<3)
-			{
-				tmp = inpFeats.getRGBHist(j);
-			}
-			else
-			{
-				tmp = inpFeats.getHSVHist(j - 3);
-			}
-
-			for (int k = 0; k < 32; k++)
-			{
-				fVec.at<float>(0, tmp.rows * j + k) = (float)tmp.at<float>(k, 0);
-			}
-		}
-	}
-	else if (fVecType == "ClothingType")
-	{
-		fVec = cv::Mat(1, 2 * 100, CV_32FC1);
-
-		cv::Mat tmp = inpFeats.getEdgeHist(0);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
-		}
-
-		tmp = inpFeats.getEdgeHist(1);
-
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j + 100) = tmp.at<float>(j, 0);
-		}
-	}
-	else if (fVecType == "All" )
-	{
-		fVec = cv::Mat(1, 2 * 100 + 32 * 6, CV_32FC1);
-
-		cv::Mat tmp = inpFeats.getEdgeHist(0);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
-		}
-
-		tmp = inpFeats.getEdgeHist(1);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j + 100) = tmp.at<float>(j, 0);
-		}
-
-		for (int j = 0; j < 6; j++)
-		{
-			if (j<3)
-			{
-				tmp = inpFeats.getRGBHist(j);
-			}
-			else
-			{
-				tmp = inpFeats.getHSVHist(j - 3);
-			}
-
-			for (int k = 0; k < 32; k++)
-			{
-				fVec.at<float>(0, tmp.rows * j + k + 200) = (float)tmp.at<float>(k, 0);
-			}
-		}
-		
-	}
-	*/
 	return fVec;
 }
 
@@ -1124,14 +1080,14 @@ cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
 	{
 		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE, CV_32FC1);
 
-		cv::Mat tmp = inpFeats->getEdgeHist(0);
+		cv::Mat tmp = inpFeats->getEdgeVect(0);
 
 		for (int j = 0; j < tmp.rows; j++)
 		{
 			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
 		}
 
-		tmp = inpFeats->getEdgeHist(1);
+		tmp = inpFeats->getEdgeVect(1);
 
 
 		for (int j = 0; j < tmp.rows; j++)
@@ -1143,14 +1099,14 @@ cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
 	{
 		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 32 * 6, CV_32FC1);
 
-		cv::Mat tmp = inpFeats->getEdgeHist(0);
+		cv::Mat tmp = inpFeats->getEdgeVect(0);
 
 		for (int j = 0; j < tmp.rows; j++)
 		{
 			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
 		}
 
-		tmp = inpFeats->getEdgeHist(1);
+		tmp = inpFeats->getEdgeVect(1);
 
 		for (int j = 0; j < tmp.rows; j++)
 		{

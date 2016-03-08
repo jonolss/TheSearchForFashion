@@ -63,7 +63,7 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 	}
 	else
 	{
-		cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY);
+		cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
 		binary = binary * 255;
 	}
 	//imshow("Binär", binary);
@@ -75,13 +75,44 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 	cv::Mat edgesBlur = preformGaussianBlur(edges);
 
 
-	edgeHists.push_back(createlocalEdgeImageHist(edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+	edgeVect.push_back(createlocalEdgeImageHist(edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
 
 	imgBlur = preformGaussianBlur(binary);
 	edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
 	edgesBlur = preformGaussianBlur(edges);
 
-	edgeHists.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+
+	//cv::namedWindow("Result # ", 1);
+	//cv::imshow("Result # ", binary);
+	//edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+
+
+
+	////////////////
+	cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
+		cv::Size(2 * 3/*erosion_size*/ + 1, 2 * 3/*erosion_size*/ + 1),
+		cv::Point(3, 3/*erosion_size, erosion_size*/));
+
+	cv::Mat erod;
+	//dilate(binary, erod, element);
+	//erode(erod, erod, element);
+
+	cv::Mat out;
+	onlyBackground(binary, out);
+	out *= 255;
+
+	out = preformGaussianBlur(out);
+	edges = preformCanny(out, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	edgesBlur = preformGaussianBlur(edges);
+
+	//cv::namedWindow("Result % ", 1);
+	//cv::imshow("Result % ", edgesBlur);
+	//cv::waitKey(0);
+	edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+	binVect.push_back(createlocalEdgeImageHist(out, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+	////////////////
+
+	this->maxHorizontal = maxHorizontalEdges(edges, 5, 30);
 
 	//fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
 }
@@ -92,11 +123,12 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 * \param hsv Histogram over the images hsv channels.
 * \param edge Histogram over the images edges.
 */
-ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge)
+ImageFeatures::ImageFeatures(vector<cv::Mat> rgb, vector<cv::Mat> hsv, vector<cv::Mat> edge, vector<cv::Mat> bin)
 {
 	this->rgbHists  = rgb;
 	this->hsvHists  = hsv;
-	this->edgeHists = edge;
+	this->edgeVect  = edge;
+	this->binVect   = bin;
 }
 
 /**Standard desturctor.
@@ -118,14 +150,17 @@ ImageFeatures::~ImageFeatures()
 		rgbHists.pop_back();
 	}
 	rgbHists.clear();
-	while (!edgeHists.empty())
+	while (!edgeVect.empty())
 	{
-		delete edgeHists.back().data;
-		edgeHists.back().release();
-		edgeHists.pop_back();
+		delete edgeVect.back().data;
+		edgeVect.back().release();
+		edgeVect.pop_back();
 	}
-	edgeHists.clear();
+	edgeVect.clear();
 }
+
+
+int ImageFeatures::getMaxHorizontal() { return maxHorizontal; }
 
 /**Returns vector with the rgb histograms of the article.
 *
@@ -139,11 +174,17 @@ vector<cv::Mat> ImageFeatures::getRGBHists()  { return rgbHists; }
 */
 vector<cv::Mat> ImageFeatures::getHSVHists()  { return hsvHists; }
 
-/**Returns vector with the edge histograms of the article.
+/**Returns vector with the edge vectors of the article.
 *
-* \return The histograms of the edges.
+* \return The vector of the edges.
 */
-vector<cv::Mat> ImageFeatures::getEdgeHists() { return edgeHists; }
+vector<cv::Mat> ImageFeatures::getEdgeVect() { return edgeVect; }
+
+/**Returns vector with the binary vector of the article.
+*
+* \return The vector of the edges.
+*/
+vector<cv::Mat> ImageFeatures::getBinVect() { return binVect; }
 
 /**Returns the n'th rgb histogram of the article.
 *
@@ -157,12 +198,18 @@ cv::Mat ImageFeatures::getRGBHist(int ch) { return rgbHists[ch]; }
 * \return The histogram of chosen hsv channel.
 */
 cv::Mat ImageFeatures::getHSVHist(int ch) { return hsvHists[ch]; }
-/**Returns the n'th edge histogram of the article.
+/**Returns the n'th edge vector of the article.
 *
-* \param n Index of edge histograms.
-* \return The chosen edge histogram.
+* \param n Index of edge vectors.
+* \return The chosen edge vector.
 */
-cv::Mat ImageFeatures::getEdgeHist(int n) { return edgeHists[n]; }
+cv::Mat ImageFeatures::getEdgeVect(int n) { return edgeVect[n]; }
+/**Returns the n'th binary vector of the article.
+*
+* \param n Index of binary vectors.
+* \return The chosen binary vector.
+*/
+cv::Mat ImageFeatures::getBinVect(int n) { return binVect[n]; }
 
 /**Constructor for making a partial ClothArticle.
 *
@@ -361,6 +408,54 @@ art_clType checkClType(string input)
 {
 
 	if (input == "Bangle")
+		return Shirt;
+	if (input == "Dress")
+		return Dress;
+	if (input == "Jumpsuit")
+		return Shirt;
+	if (input == "Playsuit")
+		return Shirt;
+	if (input == "Sweatshirt")
+		return Shirt;
+	if (input == "Tanktop")
+		return Shirt;
+	if (input == "Tshirt")
+		return Shirt;
+	if (input == "Blazer")
+		return Shirt;
+	if (input == "Blouse")
+		return Shirt;
+	if (input == "Camisole")
+		return Shirt;
+	if (input == "Jacket")
+		return Shirt;
+	if (input == "Kimono")
+		return Dress;
+	if (input == "Shirt")
+		return Shirt;
+	if (input == "Top")
+		return Shirt;
+	if (input == "Tunic")
+		return Shirt;
+	if (input == "Chinos")
+		return Trousers;
+	if (input == "Jeans")
+		return Trousers;
+	if (input == "Leggings")
+		return Leggings;
+	if (input == "Shorts")
+		return Trousers;
+	if (input == "Singlet")
+		return Leggings;
+	if (input == "Skirt")
+		return Skirt;
+	if (input == "Tights")
+		return Leggings;
+	if (input == "Trousers")
+		return Trousers;
+
+	/*
+	if (input == "Bangle")
 		return Bangle;
 	if (input == "Dress")
 		return Dress;
@@ -406,6 +501,7 @@ art_clType checkClType(string input)
 		return Tights;
 	if (input == "Trousers")
 		return Trousers;
+	*/
 
 	return ClTypeError;
 }
@@ -893,7 +989,15 @@ void saveImgFeats(ImageFeatures *input, ofstream *outFile)
 		saveMat(hists[i], outFile);
 	}
 
-	hists = input->getEdgeHists();
+	hists = input->getEdgeVect();
+	*(int*)data = hists.size();
+	outFile->write(data, sizeof(int));
+	for (int i = 0; i < hists.size(); i++)
+	{
+		saveMat(hists[i], outFile);
+	}
+
+	hists = input->getBinVect();
 	*(int*)data = hists.size();
 	outFile->write(data, sizeof(int));
 	for (int i = 0; i < hists.size(); i++)
@@ -936,7 +1040,16 @@ ImageFeatures *loadImgFeats(ifstream *inFile)
 	}
 	free(data);
 
-	ImageFeatures *res = new ImageFeatures(rgb, hsv, edge);
+	inFile->read(data, sizeof(int));
+	size = *(int*)data;
+	vector<cv::Mat> bin;
+	for (int i = 0; i < size; i++)
+	{
+		bin.push_back(loadMat(inFile));
+	}
+	free(data);
+
+	ImageFeatures *res = new ImageFeatures(rgb, hsv, edge, bin);
 
 	
 	while (!hsv.empty())
@@ -957,6 +1070,12 @@ ImageFeatures *loadImgFeats(ifstream *inFile)
 		edge.pop_back();
 	}
 	edge.clear();
+	while (!bin.empty())
+	{
+		bin.back().release();
+		bin.pop_back();
+	}
+	bin.clear();
 	
 	return res;
 }
