@@ -1021,6 +1021,7 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
+
 		case searchButton:
 			if (!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
 			{
@@ -1310,6 +1311,7 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 			cv::Mat multVec;
 			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
 			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
+			cout << filtVec << endl;
 			cv::multiply(featVec, filtVec, multVec);
 			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
 
@@ -1641,7 +1643,6 @@ vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, Clot
 cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, float negScale)
 {
 	cv::Mat filtVec(vecSize, CV_32FC1, cv::Scalar(1.0f));
-
 	if (filtType != "All")
 	{
 		if (filtType == "Color")
@@ -1875,7 +1876,7 @@ cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> *input, string testTyp
 
 	rt->setMaxDepth(20);
 	rt->setMinSampleCount(20);
-	rt->setMaxCategories(20);
+	rt->setMaxCategories(40);
 
 	rt->setCalculateVarImportance(false);
 	rt->setRegressionAccuracy(0.0f);
@@ -1915,18 +1916,10 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 	}
 
 	int dataMatFeature = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS + 6 * 32;
-	/*
-	if (classifierGroup == "Color")
-	{
-		dataMatFeature = 6 * 32;
-	}
-	else if (classifierGroup == "ClothingType")
-	{
-		dataMatFeature = 100 * 2;
-	}*/
 
 	cv::Mat tmpVec = createFeatureVector(input->at(0));
 	cv::Mat filtVec = createFilterVector(tmpVec.size(), classifierGroup, 1.0f, 0.0f);
+	cout << cv::countNonZero(filtVec) << endl;
 	cv::Mat trainingDataMat(input->size(), dataMatFeature, CV_32FC1);
 	for (int i = 0; i < labels.size(); i++)
 	{
