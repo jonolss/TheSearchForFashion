@@ -82,6 +82,7 @@ private:
 	art_clType clType;
 	art_sleeveType sleeveType;
 	ImageFeatures *imgFeats;
+	int clusterId;
 
 	
 public:
@@ -93,7 +94,9 @@ public:
 	void setColor(art_color color);
 	void setClType(art_clType clType);
 	void setSleeveType(art_sleeveType sleeveType);
+	void setClusterId(int id);
 
+	int            getClusterId();
 	string         getId();
 	string         getPath();
 	cv::Mat        getImage();

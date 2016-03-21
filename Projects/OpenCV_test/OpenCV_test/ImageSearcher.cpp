@@ -1,6 +1,8 @@
 #include "ImageSearcher.h"
 
-
+HANDLE reciSlot;
+HANDLE sendSlot;
+unordered_map<string, string> hashTable;
 
 std::wstring s2ws(const std::string& s)
 {
@@ -203,7 +205,7 @@ BOOL isOnline(LPTSTR lpszSlotName, HANDLE *hSlot)
 	return ret;
 }
 
-inline bool correctPath(const string& path) {
+inline bool validPath(const string& path) {
 	struct stat buffer;
 	return (stat(path.c_str(), &buffer) == 0);
 }
@@ -249,10 +251,8 @@ void frontend(string catalogePath)
 	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
 	hashTable = makeIdToPathTable(*tmp);
 
-	HANDLE reciSlot;
 	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
 		return;
-	HANDLE sendSlot;
 
 
 	string message = "";
@@ -290,9 +290,9 @@ void frontend(string catalogePath)
 						query += "live0.jpg\n";
 						valid = true;
 					}
-					else if (correctPath(TEST_FOLDER + inputPath))
+					else if (validPath(Config::get().TEST_FOLDER + inputPath))
 					{
-						inputPath = TEST_FOLDER + inputPath;
+						inputPath = Config::get().TEST_FOLDER + inputPath;
 						query += inputPath + '\n';
 						valid = true;
 					}
@@ -305,7 +305,7 @@ void frontend(string catalogePath)
 				valid = false;
 				do
 				{
-					cout << "Input number of hits (maximum size = " + to_string(MAXIMUM_SEARCH_HITS) + "): ";
+					cout << "Input number of hits (maximum size = " + to_string(Config::get().MAXIMUM_SEARCH_HITS) + "): ";
 					string inputHits;
 					cin >> inputHits;
 
@@ -317,7 +317,7 @@ void frontend(string catalogePath)
 					try
 					{
 						int n = stoi(inputHits);
-						if (n > MAXIMUM_SEARCH_HITS)
+						if (n > Config::get().MAXIMUM_SEARCH_HITS)
 							throw 2;
 						query += inputHits + '\n';
 						valid = true;
@@ -328,14 +328,14 @@ void frontend(string catalogePath)
 					}
 					catch (int e)
 					{
-						cout << "Invalid input, input must be an integer smaller or equal to " + to_string(MAXIMUM_SEARCH_HITS) << endl;
+						cout << "Invalid input, input must be an integer smaller or equal to " + to_string(Config::get().MAXIMUM_SEARCH_HITS) << endl;
 					}
 				} while (!valid);
 
 				valid = false;
 				do
 				{
-					cout << "Choose feat vectors (0 - All, 1 - Only Color, 2 - Only Clothing Type): ";
+					cout << "Choose feat vectors (0 - All, 1 - Only Color, 2 - Only Clothing Type, 3 - Only Pattern): ";
 					string fVec;
 					cin >> fVec;
 					try 
@@ -353,6 +353,11 @@ void frontend(string catalogePath)
 						else if (fVec == "2")
 						{
 							query += "ClothingType\n";
+							valid = true;
+						}
+						else if (fVec == "3")
+						{
+							query += "Pattern\n";
 							valid = true;
 						}
 						else
@@ -375,7 +380,7 @@ void frontend(string catalogePath)
 				valid = false;
 				do
 				{
-					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - All): ";
+					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - Clusterer , 4 - All): ";
 					string filter;
 					cin >> filter;
 					try
@@ -396,6 +401,11 @@ void frontend(string catalogePath)
 							valid = true;
 						}
 						else if (filter == "3")
+						{
+							query += "Clusterer\n";
+							valid = true;
+						}
+						else if (filter == "4")
 						{
 							query += "All\n";
 							valid = true;
@@ -470,7 +480,7 @@ void frontend(string catalogePath)
 				cv::imshow("Query EDGE2", edge2);
 
 				cv::namedWindow("Query", 1);
-				cv::imshow("Query", tmpImg2);
+				cv::imshow("Query", tmpImg3);
 				for (int i = 0; i < results.size(); i++)
 				{
 					cout << results[i] << " : " << hashTable[results[i]] << endl;
@@ -563,24 +573,674 @@ void frontend(string catalogePath)
 
 }
 
+enum {
+	IDCL_LISTBOX = 200,
+	IDBC_DEFPUSHBUTTON,
+	IDBC_PUSHBUTTON,
+	IDBC_AUTOCHECKBOX,
+	IDBC_AUTORADIOBUTTON,
+	IDBC_GROUPBOX,
+	IDBC_ICON,
+	IDBC_BITMAP
+};
+
+typedef std::basic_string<TCHAR> ustring;
+
+LPCWSTR g_szClassName = TEXT("myWindowClass");
+
+enum
+{
+	featAll = 100,
+	featColor,
+	featClType,
+	featPattern,
+	filtNone,
+	filtColor,
+	filtClType,
+	filtCluster,
+	filtAll,
+	searchButton,
+	onlineButton,
+	res0, res1, res2,
+	res3, res4, res5,
+	res6, res7, res8,
+	res9, res10, res11
+};
+
+HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
+{
+	HWND outGroup = CreateWindowEx(WS_EX_WINDOWEDGE,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Feature"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_GROUPBOX,             //control style 
+		x,												    //position: left
+		y,													  //position: top
+		320,												  //width
+		40,													  //height
+		hwnd,											       //parent window handle							  
+		(HMENU)2,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but0 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("All"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		10,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featAll,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but1 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Color"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		85,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featColor,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but2 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("ClType"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		160,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featClType,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but3 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Pattern"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		235,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featPattern,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+	return outGroup;
+}
+
+HWND makeFiltButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
+{
+	HWND outGroup = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Filter"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_GROUPBOX,             //control style 
+		x,												    //position: left
+		y,													  //position: top
+		395,												  //width
+		40,													  //height
+		hwnd,											       //parent window handle							  
+		(HMENU)2,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but0 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("None"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		10,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)filtNone,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but1 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Color"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		85,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)filtColor,										//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but2 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("ClType"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		160,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)filtClType, 									//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but3 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Cluster"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		235,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)filtCluster,											//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND but4 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("All"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
+		310,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)filtAll,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	return outGroup;
+}
+
+int OnCreate(const HWND hwnd, CREATESTRUCT *cs)
+{
+	HWND PathStatic = CreateWindowEx(0,
+		WC_STATIC,
+		TEXT("Path to query:"),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,
+		10,
+		10,
+		95,
+		20,
+		hwnd,
+		NULL,
+		NULL,
+		NULL);
+
+	HWND PathBox = CreateWindowEx(0,
+		WC_COMBOBOX,
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,
+		10,
+		35,
+		300,
+		20,
+		hwnd,
+		NULL,
+		NULL,
+		NULL);
+
+	SendMessage(PathBox, CB_SETCUEBANNER, (WPARAM)0, (LPARAM)TEXT("e.g. dress0.jpg"));
+
+	HWND NumResStatic = CreateWindowEx(0,
+		WC_STATIC,
+		TEXT("Number of results (max 12):"),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,
+		10,
+		65,
+		185,
+		20,
+		hwnd,
+		NULL,
+		NULL,
+		NULL);
+
+	HWND NumResText = CreateWindowEx(0,
+		WC_COMBOBOX,
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,
+		10,
+		90,
+		300,
+		20,
+		hwnd,
+		NULL,
+		NULL,
+		NULL);
+
+	SendMessage(NumResText, CB_SETCUEBANNER, (WPARAM)0, (LPARAM)TEXT("e.g. 12"));
+
+	HWND featBox = makeFeatButtons(hwnd, cs, 10, 125);
+
+	HWND filtBox = makeFiltButtons(hwnd, cs, 10, 175);
+
+	HWND hWnd3 = CreateWindowEx(0,          //extended styles
+		_T("button"),						//control 'class' name
+		_T("Search"),						//control caption
+		WS_VISIBLE | WS_CHILD,				//control style 
+		10,							        //position: left
+		220,							    //position: top
+		50,									//width
+		30,									//height
+		hwnd,								//parent window handle							 
+		(HMENU)searchButton,				//control's ID
+		cs->hInstance,                      //application instance
+		0);
+
+	HWND msgBox = CreateWindowEx(0,         //extended styles
+		_T("static"),						//control 'class' name
+		_T(""),						    //control caption
+		WS_VISIBLE | WS_CHILD,				//control style 
+		70,							        //position: left
+		225,							    //position: top
+		300,								//width
+		20,									//height
+		hwnd,								//parent window handle							 
+		0,							        //control's ID
+		cs->hInstance,                      //application instance
+		0);
+
+	HWND hWnd4 = CreateWindowEx(0,          //extended styles
+		_T("button"),						//control 'class' name
+		_T("Online"),						//control caption
+		WS_VISIBLE | WS_CHILD,				//control style 
+		10,							        //position: left
+		260,							    //position: top
+		50,									//width
+		30,									//height
+		hwnd,								//parent window handle							 
+		(HMENU)onlineButton,				//control's ID
+		cs->hInstance,                      //application instance
+		0);
+
+	return 0;
+}
+
+int checkRadioGroup(HWND groupHWND, int first, int last)
+{
+	for (int i = first; i <= last; i++)
+	{
+		if (IsDlgButtonChecked(groupHWND, i))
+			return i;
+	}
+	return 0;
+}
+
+bool validQuery(string query)
+{
+	istringstream iss(query);
+
+	int count = 0;
+	string line;
+	while (getline(iss, line))
+	{
+		if (count == 0 && line != "imgSearch")
+			return false;
+		else if (count == 1 && !validPath(line))
+			return false;
+		else if (count == 2)
+		{
+			try
+			{
+				int n = stoi(line);
+				if (n > Config::get().MAXIMUM_SEARCH_HITS)
+					return false;
+			}
+			catch (exception e)
+			{
+				return false;
+			}
+		}
+		else if (count == 3 && line == "")
+			return false;
+		else if (count == 4 && line == "")
+			return false;
+		else if (count > 4)
+			return false;
+
+		count++;
+	}
+	if (count < 5)
+		return false;
+
+	return true;
+}
+
+string createQuery(LPTSTR path, LPTSTR numRes, int featNum, int filtNum)
+{
+	string out = "imgSearch\n";
+
+	char tmp[32] = { '\0' };
+	cout << (string)tmp << endl;
+	int i;
+	for (i = 0; path[i] != '\0'; i++)
+	{
+		tmp[i] = path[i];
+	}
+	tmp[i] = '\0';
+	out += Config::get().TEST_FOLDER + string(tmp) + "\n";
+
+	for (i = 0; numRes[i] != '\0'; i++)
+	{
+		tmp[i] = numRes[i];
+	}
+	tmp[i] = '\0';
+	out += string(tmp) + "\n";
+
+	switch (featNum)
+	{
+	case featAll:
+		out += "All\n";
+		break;
+	case featColor:
+		out += "Color\n";
+		break;
+	case featClType:
+		out += "clType\n";
+		break;
+	case featPattern:
+		out += "Pattern\n";
+		break;
+	}
+
+	switch (filtNum)
+	{
+	case filtNone:
+		out += "None\n";
+		break;
+	case filtColor:
+		out += "Color\n";
+		break;
+	case filtClType:
+		out += "ClothingType\n";
+		break;
+	case filtCluster:
+		out += "Clusterer\n";
+		break;
+	case filtAll:
+		out += "All\n";
+		break;
+	}
+
+	return out;
+}
+
+bool sendQuery(vector<string> &results, string query)
+{
+	std::wstring stemp = s2ws(query);
+	LPCWSTR lquery = stemp.c_str();
+	writeSlot(sendSlot, lquery);
+	CloseHandle(sendSlot);
+
+	while (results.empty())
+	{
+		string request = readSlot(reciSlot);
+
+		if (request == "FALSE")
+			return false;
+
+		if (request != "")
+		{
+			char tmp;
+			int pos = request.find('\n');
+			while (pos != string::npos)
+			{
+				results.push_back(request.substr(0, pos));
+				request = request.substr(pos + 1, request.length() - pos + 1);
+				pos = request.find('\n');
+			}
+		}
+		else
+		{
+			Sleep(1);
+		}
+	}
+	return true;
+}
+
+// Step 4: the Window Procedure
+inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+
+	HWND tmp;
+	LPTSTR path = (LPTSTR)new char[32];
+	LPTSTR numRes = (LPTSTR)new char[32];
+	int featNum = 0;
+	int filtNum = 0;
+	string query;
+
+	switch (msg)
+	{
+	case WM_COMMAND:
+		switch (LOWORD(wParam))
+		{
+		case searchButton:
+			if (!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Couldn't send request, backend is offline."));
+			}
+			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
+			{
+				tmp = FindWindowEx(hwnd, NULL, WC_COMBOBOX, NULL);
+				GetWindowText(tmp, path, 32);
+
+				tmp = FindWindowEx(hwnd, tmp, WC_COMBOBOX, NULL);
+				GetWindowText(tmp, numRes, 32);
+
+				tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Feature"));
+				featNum = checkRadioGroup(tmp, featAll, featPattern);
+
+				tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Filter"));
+				filtNum = checkRadioGroup(tmp, filtNone, filtAll);
+
+
+				query = createQuery(path, numRes, featNum, filtNum);
+
+				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+				if (validQuery(query))
+				{
+					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Initiating search."));
+
+					vector<string> results;
+					cout << sendQuery(results, query) << endl;
+
+					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Showcasing results."));
+
+					string sTmp = query.substr(query.find('\n') + 1, query.length() - query.find('\n'));
+					string inputPath = sTmp.substr(0, sTmp.find('\n'));
+					cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
+					cv::Mat tmpImg3 = resizeImg(tmpImg, 300, 300);
+					cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
+
+					cv::cvtColor(tmpImg2, tmpImg2, CV_BGR2GRAY);
+
+					cv::threshold(tmpImg2, tmpImg2, 248, 255, CV_THRESH_BINARY_INV);
+					//cv::bitwise_not(tmpImg2, tmpImg2);
+					tmpImg2 = tmpImg2 * 255;
+
+					cv::Mat out;
+					onlyBackground(tmpImg2, out);
+					out *= 255;
+
+					cv::Mat edge = preformCanny(out, 80, 140);
+					cv::Mat edge2 = preformCanny(tmpImg2, 80, 140);
+
+					cv::namedWindow("Query EDGE", 1);
+					cv::imshow("Query EDGE", edge);
+
+					cv::namedWindow("Query EDGE2", 1);
+					cv::imshow("Query EDGE2", edge2);
+
+					cv::namedWindow("Query", 1);
+					cv::imshow("Query", tmpImg3);
+					for (int i = 0; i < results.size(); i++)
+					{
+						cout << results[i] << " : " << hashTable[results[i]] << endl;
+						tmpImg = cv::imread(hashTable[results[i]], cv::IMREAD_UNCHANGED);
+						cout << hashTable[results[i]] << endl;
+						if (hashTable[results[i]].find(".png") != string::npos)
+							filterAlphaArtifacts(&tmpImg);
+						tmpImg2 = resizeImg(tmpImg, 300, 300);
+
+						cv::Mat tmpImg3;
+						cv::cvtColor(tmpImg2, tmpImg3, CV_BGR2GRAY);
+						cv::threshold(tmpImg3, tmpImg3, 248, 255, CV_THRESH_BINARY_INV);
+						cv::Mat tmpImg4;
+						onlyBackground(tmpImg3, tmpImg4);
+						tmpImg4 *= 255;
+						tmpImg4 = preformGaussianBlur(tmpImg4);
+						tmpImg4 = preformCanny(tmpImg4, 80, 140);
+
+						cv::namedWindow("Result # " + to_string(i + 1), 1);
+						cv::imshow("Result # " + to_string(i + 1), tmpImg2);
+					}
+					cv::waitKey(0);
+					cv::destroyAllWindows();
+
+					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT(""));
+				}
+				else
+				{
+					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Wrong input, try again."));
+				}
+			}
+			break;
+		case onlineButton:
+			tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
+			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
+				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Backend is online."));
+			else
+				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Backend is offline."));
+			break;
+		}
+		break;
+	case WM_CREATE:
+		return OnCreate(hwnd, reinterpret_cast<CREATESTRUCT*>(lParam));
+		break;
+	case WM_CLOSE:
+		DestroyWindow(hwnd);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hwnd, msg, wParam, lParam);
+	}
+	return 0;
+}
+
+int guiFrontend(string catalogePath)
+{
+	
+	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
+	hashTable = makeIdToPathTable(*tmp);
+
+	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
+		return -1;
+
+
+	WNDCLASSEX wc;
+	HWND hwnd;
+	MSG Msg;
+
+	//Step 1: Registering the Window Class
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.style = 0;
+	wc.lpfnWndProc = WndProc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hInstance = NULL;
+	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wc.lpszMenuName = NULL;
+	wc.lpszClassName = g_szClassName;
+	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+
+	if (!RegisterClassEx(&wc))
+	{
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"),
+			MB_ICONEXCLAMATION | MB_OK);
+		return 0;
+	}
+
+	// Step 2: Creating the Window
+	hwnd = CreateWindowEx(
+		0,
+		g_szClassName,
+		TEXT("The title of my window"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		400,
+		350,
+		NULL,
+		NULL,
+		NULL,
+		NULL);
+
+
+
+	if (hwnd == NULL)
+	{
+		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"),
+			MB_ICONEXCLAMATION | MB_OK);
+		return 0;
+	}
+
+
+	ShowWindow(hwnd, SW_SHOW);
+	UpdateWindow(hwnd);
+
+	// Step 3: The Message Loop
+	while (GetMessage(&Msg, NULL, 0, 0) > 0)
+	{
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
+	}
+	return Msg.wParam;
+}
+
+
 int backend(string catalogePath, bool embeded, bool loadModel)
 {
+	
 	vector<ClothArticle*> *allArticles;
 	cv::Ptr<cv::ml::RTrees> colorModel;
 	cv::Ptr<cv::ml::RTrees> clTypeModel;
-	if (correctPath(catalogePath + SAVE_EXTENTION) && correctPath(catalogePath + MODEL_COLOR_EXTENTION) && correctPath(catalogePath + MODEL_CLTYPE_EXTENTION))
+	cv::Ptr<cv::ml::RTrees> clusterModel;
+	if (validPath(catalogePath + Config::get().SAVE_EXTENTION) && validPath(catalogePath + Config::get().MODEL_COLOR_EXTENTION) && validPath(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION))
 	{
-		allArticles = loadCataloge(catalogePath + SAVE_EXTENTION);
-		colorModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + MODEL_COLOR_EXTENTION);
-		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + MODEL_CLTYPE_EXTENTION);
+		cout << Config::get().SAVE_EXTENTION + "Badaboj" << endl;
+		cout << Config::get().MODEL_COLOR_EXTENTION << endl;
+		cout << Config::get().MODEL_CLTYPE_EXTENTION << endl;
+		allArticles = loadCataloge(catalogePath + Config::get().SAVE_EXTENTION);
+		colorModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
+		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
 	}
 	else
 	{
 		allArticles = readCatalogeFromFile(catalogePath, false);
+		clusterCataloge(allArticles, "Clusterer");
 		colorModel = makeRTModel(allArticles, "Color");
 		clTypeModel = makeRTModel(allArticles, "ClothingType");
-		colorModel->save(catalogePath + MODEL_COLOR_EXTENTION);
-		clTypeModel->save(catalogePath + MODEL_CLTYPE_EXTENTION);
+		clusterModel = makeRTModel(allArticles, "Clusterer");
+		colorModel->save(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
+		clTypeModel->save(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
 	}
 
 	/*
@@ -594,10 +1254,8 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 	*/
 
 
-	HANDLE reciSlot;
 	if (!MakeReciSlot(FRONT_TO_BACK_SLOT, &reciSlot))
 		return 1;
-	HANDLE sendSlot;
 	
 	while (true)
 	{
@@ -659,6 +1317,11 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 			filtVec = createFilterVector(featVec.size(), "ClothingType", 1.0f, 0.0f);
 			cv::multiply(featVec, filtVec, multVec);
 			queryArticle->setClType(art_clType((int)clTypeModel->predict(multVec)));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "Clusterer", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterId((int)clusterModel->predict(multVec));
 
 
 			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
@@ -753,15 +1416,18 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 	{
 		ClothArticle* curr = allArticles->at(i);
 
+		
+
 		bool statement = (filterType == "None")
 			|| (filterType == "ClothingType" && curr->getClType() == query->getClType())
 			|| (filterType == "Color" && curr->getColor() == query->getColor())
+			|| (filterType == "Clusterer" && curr->getClusterId() == query->getClusterId())
 			|| (filterType == "All" && curr->getClType() == query->getClType() && curr->getColor() == query->getColor());
 		if (statement)
 		{
 			cv::Mat currFeat = createFeatureVector(curr); // , fVecType);
 			
-
+			cout << to_string(curr->getClType()) << endl;
 			float dist = calcEuclDist(queryFeat, currFeat, filtVec);
 
 			tuple<float, string> currPriEntry;
@@ -982,7 +1648,7 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 		{
 			for (int i = 0; i < filtVec.cols; i++)
 			{
-				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
+				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS ? posScale : negScale;
 			}
 		}
 		else if (filtType == "ClothingType")
@@ -992,9 +1658,40 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 				filtVec.at<float>(0, i) = i < 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
 			}
 		}
+		else if (filtType == "Pattern")
+		{
+			for (int i = 0; i < filtVec.cols; i++)
+			{
+				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE && i < 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS ? posScale : negScale;
+			}
+		}
+		else if (filtType == "Clusterer")
+		{
+			for (int i = 0; i < filtVec.cols; i++)
+			{
+				filtVec.at<float>(0, i) = i < 2 * EDGE_FEATURE_SIZE && i >= EDGE_FEATURE_SIZE ? posScale : negScale;
+			}
+		}
 		else
 		{
 			cout << "Wrong" << endl;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < filtVec.cols; i++)
+		{
+			//cout << "COLOR: " << (float)(32 * 6) / (float)filtVec.cols << endl;
+			//cout << "CLTYPE: " << (float)(2 * EDGE_FEATURE_SIZE) / (float)filtVec.cols << endl;
+			//cout << "PATTERN: " << (float)Config::get().NUM_OF_GRAD_ANGS / (float)filtVec.cols << endl;
+			//cout << "TOTAL: " << (float)(32 * 6) / (float)filtVec.cols + (float)(2 * EDGE_FEATURE_SIZE) / (float)filtVec.cols + (float)Config::get().NUM_OF_GRAD_ANGS / (float)filtVec.cols << endl;
+
+			if (i >= 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS)
+				filtVec.at<float>(0, i) = 1. / (float)(6 * 3);
+			else if (i < 2 * EDGE_FEATURE_SIZE)
+				filtVec.at<float>(0, i) = 1. / (float)(2 * 3);
+			else
+				filtVec.at<float>(0, i) = 1. / (float)(Config::get().NUM_OF_GRAD_ANGS * 3);
 		}
 	}
 
@@ -1012,7 +1709,7 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	cv::Mat fVec;
 	ImageFeatures *inpFeats = input->getImgFeats();
 
-	fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 6 * 32, CV_32FC1);
+	fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS + 6 * 32, CV_32F);
 
 	cv::Mat tmp = inpFeats->getEdgeVect(0);
 
@@ -1029,6 +1726,12 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 		fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
 	}
 
+	tmp = inpFeats->getEdgeVect(2);
+	for (int j = 0; j < tmp.rows; j++)
+	{
+		fVec.at<float>(0, j + 2 * EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+	}
+
 	for (int j = 0; j < 6; j++)
 	{
 		if (j<3)
@@ -1042,7 +1745,7 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 
 		for (int k = 0; k < 32; k++)
 		{
-			fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE) = (float)tmp.at<float>(k, 0);
+			fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS) = (float)tmp.at<float>(k, 0);
 		}
 	}
 
@@ -1201,6 +1904,8 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 			labels.push_back(input->at(i)->getClType());
 		else if (classifierGroup == "SleeveType")
 			labels.push_back(input->at(i)->getSleeveType());
+		else if (classifierGroup == "Clusterer")
+			labels.push_back(input->at(i)->getClusterId());
 	}
 
 	cv::Mat labelsMat(labels.size(), 1, CV_32SC1);
@@ -1209,7 +1914,7 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 		labelsMat.at<int>(i, 0) = labels[i];
 	}
 
-	int dataMatFeature = 2 * EDGE_FEATURE_SIZE + 6 * 32;
+	int dataMatFeature = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS + 6 * 32;
 	/*
 	if (classifierGroup == "Color")
 	{
@@ -1285,6 +1990,48 @@ cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, s
 	cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainingDataMat, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat); // <-- Den här får fel data vid ClothingType
 
 	return tData;
+}
+
+
+void clusterCataloge(vector<ClothArticle*> *cataloge, string filtType)
+{
+
+	int clusterCount = MIN(Config::get().MAXIMUM_CLUSTER_COUNT,cataloge->size());
+
+	cv::Mat points(cataloge->size(), 4 * EDGE_FEATURE_SIZE + 6 * 32, CV_32F);
+	cv::Mat labels;
+
+	for (int i = 0; i < cataloge->size(); i++)
+	{
+		cv::Mat tmp1 = createFeatureVector(cataloge->at(i));
+		cv::Mat tmp2 = createFilterVector(tmp1.size(), filtType, 1.0f, 0.0f);
+		cv::Mat tmp3;
+		cv::multiply(tmp1, tmp2, tmp3);
+		tmp3.copyTo(points(cv::Rect(0, i, tmp3.cols, tmp3.rows)));
+	}
+	cout << points.size() << endl;
+
+	cv::Mat centers;
+
+	kmeans(points, clusterCount, labels,
+		cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0),
+		3, cv::KMEANS_PP_CENTERS, centers);
+
+	int *list = (int*) calloc(clusterCount, sizeof(int));
+	for (int i = 0; i < cataloge->size(); i++)
+	{
+		cataloge->at(i)->setClusterId(labels.at<int>(i));
+		list[labels.at<int>(i)]++;
+	}
+
+	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl
+		 << "% Size of clusters " << endl;
+	for (int i = 0; i < clusterCount; i++)
+	{
+		cout << "% " << i + 1 << ": " << list[i] << endl;
+	}
+	cout << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+	free(list);
 }
 
 

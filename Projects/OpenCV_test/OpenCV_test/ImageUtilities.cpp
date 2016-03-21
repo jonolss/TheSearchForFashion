@@ -169,6 +169,7 @@ cv::Mat preformGaussianBlur(cv::Mat src)
 	return out;
 }
 
+
 /**Makes a normalized version of inputed histogram.
 *
 * \param hist Histogram that needs normalization.
@@ -827,4 +828,71 @@ int maxHorizontalEdges(cv::Mat edgeImg, int minDist, int minHeight)
 			biggest = i;
 	}
 	return biggest;
+}
+
+
+void createGradiantHistogram(cv::Mat &src, cv::Mat &dst, int num)
+{
+
+	float maxVal = (float)(src.rows * src.cols)*255.;
+
+	cv::Mat tmp = cv::Mat(num * 2, 1, CV_32F);
+	for (int i = 0; i < num; i++)
+	{
+		cv::Mat gradX, gradY;
+		double ang = ((double)i / (double)num) * 90.;
+
+		rotateAndGradiant(src, gradX, gradY, ang);
+
+		//cv::threshold()
+
+		//gradX = preformCanny(gradX, 80, 180);
+		//gradY = preformCanny(gradY, 80, 180);
+
+		//cv::threshold(gradX, gradX, 100, 1, 0);// cv::THRESH_TRIANGLE);
+		//cv::threshold(gradY, gradY, 100, 1, 0);//cv::THRESH_TRIANGLE);
+
+		//gradX *= 255;
+		//gradY *= 255;
+
+		//cv::imshow("gradX", gradX);
+		//cv::imshow("gradY", gradY);
+		//cv::waitKey();
+
+		tmp.at<float>(i, 0)       = (float)cv::sum(gradX)[0] / maxVal;
+		tmp.at<float>(i + num, 0) = (float)cv::sum(gradY)[0] / maxVal;
+	}
+	tmp.copyTo(dst);
+}
+
+void rotateAndGradiant(cv::Mat &src, cv::Mat &dstX, cv::Mat &dstY, double ang)
+{
+	cv::Mat tmp0;
+	cv::cvtColor(src, tmp0, CV_RGB2GRAY);
+	//cv::equalizeHist(tmp0, tmp0);
+
+	int xLen = src.cols;
+	int yLen = src.rows;
+	double angRad = ang*PI/180;
+	int bx = xLen * cos(angRad) + yLen * sin(angRad);
+	int by = xLen * sin(angRad) + yLen * cos(angRad);
+	cv::Mat tmp1(cv::Size(bx, by), CV_8U, cv::Scalar(255, 255, 255));
+
+	int deltaX = (bx - xLen) / 2;
+	int deltaY = (by - yLen) / 2;
+	tmp0.copyTo(tmp1(cv::Rect(deltaX, deltaY, xLen, yLen)));
+
+	cv::Point2f pt(bx / 2., by / 2.);
+	cv::Mat r = cv::getRotationMatrix2D(pt, ang, 1.0);
+
+	cv::Mat tmp2;
+	cv::warpAffine(tmp1, tmp2, r, cv::Size(bx, by), 1, 0, cv::Scalar(255, 255, 255));
+
+	cv::Mat grad_x1, grad_y1;
+
+	cv::Sobel(tmp2, grad_x1, CV_16S, 2, 0, 3);
+	cv::Sobel(tmp2, grad_y1, CV_16S, 0, 2, 3);
+
+	cv::convertScaleAbs(grad_x1, dstX);
+	cv::convertScaleAbs(grad_y1, dstY);
 }

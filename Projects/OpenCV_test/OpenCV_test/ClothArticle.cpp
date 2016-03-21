@@ -66,55 +66,37 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 		cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
 		binary = binary * 255;
 	}
-	//imshow("Binär", binary);
-	//waitKey(0);
 	
 	
 	cv::Mat imgBlur = preformGaussianBlur(imgGray);
-	cv::Mat edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	cv::Mat edges = preformCanny(imgBlur, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 	cv::Mat edgesBlur = preformGaussianBlur(edges);
 
 
-	edgeVect.push_back(createlocalEdgeImageHist(edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+	edgeVect.push_back(createlocalEdgeImageHist(edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
 
 	imgBlur = preformGaussianBlur(binary);
-	edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	edges = preformCanny(imgBlur, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 	edgesBlur = preformGaussianBlur(edges);
-
-
-	//cv::namedWindow("Result # ", 1);
-	//cv::imshow("Result # ", binary);
-	//edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
-
-
-
-	////////////////
-	cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
-		cv::Size(2 * 3/*erosion_size*/ + 1, 2 * 3/*erosion_size*/ + 1),
-		cv::Point(3, 3/*erosion_size, erosion_size*/));
-
-	cv::Mat erod;
-	//dilate(binary, erod, element);
-	//erode(erod, erod, element);
 
 	cv::Mat out;
 	onlyBackground(binary, out);
 	out *= 255;
 
 	out = preformGaussianBlur(out);
-	edges = preformCanny(out, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+	edges = preformCanny(out, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 	edgesBlur = preformGaussianBlur(edges);
 
-	//cv::namedWindow("Result % ", 1);
-	//cv::imshow("Result % ", edgesBlur);
-	//cv::waitKey(0);
-	edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
-	binVect.push_back(createlocalEdgeImageHist(out, IMAGE_SIZE_XY / EDGE_IMAGE_SIZE_XY));
+	edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
+	binVect.push_back(createlocalEdgeImageHist(out, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
 	////////////////
 
 	this->maxHorizontal = maxHorizontalEdges(edges, 5, 30);
 
-	//fVec.at<float>(0, nhs.rows * j + k) = (float)nhs.at<float>(k, 0);
+	cv::Mat gradHist;
+	createGradiantHistogram(image, gradHist, 4);
+
+	edgeVect.push_back(gradHist);
 }
 
 /**Constructor for making ImageFeatures.
@@ -237,11 +219,12 @@ ClothArticle::ClothArticle(string id, string path, string color, string clType, 
 	this->clType     = checkClType(clType);
 	this->sleeveType = checkSleeveType(sleeveType);
 	this->path       = path;
+	this->clusterId  = 0;
 	cv::Mat tmp = cv::imread(path, cv::IMREAD_UNCHANGED);
 	bool png = path.find(".png") != string::npos;
 	if (png)
 		filterAlphaArtifacts(&tmp);
-	cv::Mat tmp2 = resizeImg(tmp, IMAGE_SIZE_XY, IMAGE_SIZE_XY);
+	cv::Mat tmp2 = resizeImg(tmp, Config::get().IMAGE_SIZE_XY, Config::get().IMAGE_SIZE_XY);
 
 	this->imgFeats = new ImageFeatures(tmp2,png);
 
@@ -264,6 +247,7 @@ ClothArticle::ClothArticle(string id, string path, art_color color, art_clType c
 	this->sleeveType = sleeveType;
 	this->path       = path;
 	this->imgFeats   = imgFeats;
+	this->clusterId  = 0;
 }
 
 /**Standard desturctor.
@@ -271,6 +255,12 @@ ClothArticle::ClothArticle(string id, string path, art_color color, art_clType c
 */
 ClothArticle::~ClothArticle() { delete imgFeats; }
 
+
+/**Returns the cluster id of the article.
+*
+* \return Article's cluster id.
+*/
+int ClothArticle::getClusterId() { return clusterId; }
 
 /**Returns the id of the article.
 *
@@ -295,7 +285,7 @@ cv::Mat ClothArticle::getImage()
 	{
 		filterAlphaArtifacts(&tmp);
 	}
-	cv::Mat tmp2 = resizeImg(tmp, IMAGE_SIZE_XY, IMAGE_SIZE_XY);
+	cv::Mat tmp2 = resizeImg(tmp, Config::get().IMAGE_SIZE_XY, Config::get().IMAGE_SIZE_XY);
 	return tmp2;
 }
 
@@ -316,6 +306,12 @@ art_clType ClothArticle::getClType()         { return clType; }
 */
 art_sleeveType ClothArticle::getSleeveType() { return sleeveType; }
 
+
+/**Sets the article's cluster id.
+*
+* \param id The id of the cluster being set.
+*/
+void ClothArticle::setClusterId(int id) { this->clusterId = id; }
 /**Sets the article's type of color.
 *
 * \param color Type of color that is being set.

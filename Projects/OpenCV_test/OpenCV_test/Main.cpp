@@ -1,22 +1,28 @@
 
+
+
+
 #include <iostream>
 #include <fstream>
 
 //#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/core.hpp>
 
+#include "Config.h"
 #include "ClothArticle.h"
 #include "ImageUtilities.h"
 #include "ImageSearcher.h"
 
-#include "FrontEnd.h"
+
 
 #include "ezsift.h"
 #include "image.h"
 #include "img_io.h"
 
 #define CONFIG_PATH "TSFS.conf"
+
 
 //using namespace cv;
 //using namespace cv::ml;
@@ -30,10 +36,14 @@ void svmANDrfTest(string filename, string testType);
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
 
 
+
+
+#define MAIN
+#ifdef MAIN
 int main(int argc, char* argv[])
 {
-	readConfigFile(CONFIG_PATH);
-	printConfig();
+	Config::get().readConfigFile(CONFIG_PATH);
+	Config::get().printConfig();
 
 	if (argc == 3)
 	{
@@ -94,7 +104,7 @@ int main(int argc, char* argv[])
 
 
 		//ClothArticle *art = new ClothArticle("kov", "./testfiles/shirt3.png", "Rod", "Top", 0);
-		
+
 		/*
 		cv::Mat img = cv::imread("./testfiles/dress0.jpg", cv::IMREAD_UNCHANGED);
 		cv::Mat tmp2 = resizeImg(img, 300, 300);
@@ -127,9 +137,9 @@ int main(int argc, char* argv[])
 		cv::imshow("binary", binary);
 
 		cv::waitKey(0);
-		
+
 		thinning(binary, binary);
-		
+
 		cv::namedWindow("binary", 0);
 		cv::imshow("binary", binary);
 
@@ -137,8 +147,8 @@ int main(int argc, char* argv[])
 
 		//cv::Mat binary2 = resizeImg(binary, 75, 75);
 
-		
-		
+
+
 		//cv::Mat binary3(binary.size(), CV_8U);
 		//binary.copyTo(binary3);
 		//binary3 /= 255;
@@ -186,12 +196,12 @@ int main(int argc, char* argv[])
 		if (inFile.is_open())
 		{
 			ImageFeatures *bop = loadImgFeats(&inFile); // <--- Ger ut ImageFeatures med tomma vectorer
-				
+
 			delete bop;
 		}
 		inFile.close();
 		*/
-		
+
 		/*
 		vector<ClothArticle*> kov;
 		kov.push_back(art);
@@ -214,7 +224,7 @@ int main(int argc, char* argv[])
 		cout << moe->at(0)->getImgFeats()->getEdgeHist(0).at<float>(0, 0) << endl;
 		*/
 
-		
+
 
 
 
@@ -225,8 +235,8 @@ int main(int argc, char* argv[])
 			boutFile.close();
 			cout << "before: " << (int)back.at<uchar>(0, 0) << endl;
 		}
-		
-		
+
+
 		ifstream binFile("b.bop", ios::in | ios::binary);
 		if (binFile.is_open())
 		{
@@ -234,27 +244,301 @@ int main(int argc, char* argv[])
 			binFile.close();
 			cout << "after: " << (int)loaded.at<uchar>(0, 0) << endl;
 		}
-		
-		
+
+
 		//cv::imshow("laugh", loaded);
 		//cv::waitKey(0);
-		
+
 		return 0;
+	}
+	else if (string(argv[1]) == "--sobel")
+	{
+		cv::Mat src1 = cv::imread("testfiles/checkered0.jpg");
+		cv::Mat img1 = resizeImg(src1, 300, 300);
+
+		cv::Mat gray1;
+		cv::cvtColor(img1, gray1, CV_BGR2GRAY);
+
+		cv::Mat grad_x1, grad_y1;
+		cv::Mat absGrad_x1, absGrad_y1;
+
+		cv::Sobel(gray1, grad_x1, CV_16S, 2, 0, 3);
+		cv::Sobel(gray1, grad_y1, CV_16S, 0, 2, 3);
+
+		cv::convertScaleAbs(grad_x1, absGrad_x1);
+		cv::convertScaleAbs(grad_y1, absGrad_y1);
+
+		cv::Mat all1;
+		cv::addWeighted(absGrad_x1, 0.5, absGrad_y1, 0.5, 0, all1);
+		cv::imshow("absboth", all1);
+
+		cv::Sobel(gray1, grad_x1, CV_8U, 2, 0, 3);
+		cv::Sobel(gray1, grad_y1, CV_8U, 0, 2, 3);
+
+		cv::addWeighted(grad_x1, 0.5, grad_y1, 0.5, 0, all1);
+		cv::imshow("both", all1);
+
+		cv::imshow("org", gray1);
+		cv::imshow("x", grad_x1);
+		cv::imshow("y", grad_y1);
+		cv::imshow("absx", absGrad_x1);
+		cv::imshow("absy", absGrad_y1);
+
+		cv::waitKey();
+
+	}
+	else if (string(argv[1]) == "--window")
+	{
+		string query = "lök\nstolpe\nkadaver\n";
+
+		string sTmp = query.substr(query.find('\n') + 1, query.length()  - query.find('\n'));
+		string inputPath = sTmp.substr(0, sTmp.find('\n'));
+
+		cout << sTmp << endl;
+		cout << "---------------------------" << endl;
+		cout << inputPath << endl;
+
+		guiFrontend("readyFile2.xx");
+
+
+
+
+	}
+	else if (string(argv[1]) == "--rotate")
+	{
+		cv::Mat src1 = cv::imread("testfiles/checkered0.jpg");
+		cv::Mat img1 = resizeImg(src1, 300, 300);
+
+		cv::Mat hist;
+		createGradiantHistogram(img1, hist, 4);
+
+	}
+	else if (string(argv[1]) == "--knug")
+	{
+		vector<ClothArticle*> *allArticles = readCatalogeFromFile("readyFile2.xx", false);
+		clusterCataloge(allArticles, "Clusterer");
+
+		cout << allArticles->at(0)->getClusterId() << endl;
+		cout << allArticles->at(1)->getClusterId() << endl;
+		cout << allArticles->at(2)->getClusterId() << endl;
+		cout << allArticles->at(3)->getClusterId() << endl;
+		cout << allArticles->at(4)->getClusterId() << endl;
+		cout << allArticles->at(5)->getClusterId() << endl;
+
+
+	}
+	else if (string(argv[1]) == "--cluster")
+	{
+		const int MAX_CLUSTERS = 5;
+		cv::Scalar colorTab[] =
+		{
+			cv::Scalar(0, 0, 255),
+			cv::Scalar(0,255,0),
+			cv::Scalar(255,100,100),
+			cv::Scalar(255,0,255),
+			cv::Scalar(0,255,255)
+		};
+
+		cv::Mat img(500, 500, CV_8UC3);
+		cv::RNG rng(12345);
+
+		while (true)
+		{
+			int k, clusterCount = rng.uniform(2, MAX_CLUSTERS + 1);
+			int i, sampleCount = rng.uniform(1, 1001);
+			cv::Mat points(sampleCount, 1, CV_32FC2), labels;
+
+			clusterCount = MIN(clusterCount, sampleCount);
+			cv::Mat centers;
+
+
+			/* generate random sample from multigaussian distribution */
+			for (k = 0; k < clusterCount; k++)
+			{
+				cv::Point center;
+				center.x = rng.uniform(0, img.cols);
+				center.y = rng.uniform(0, img.rows);
+				cv::Mat pointChunk = points.rowRange(k*sampleCount / clusterCount,
+					k == clusterCount - 1 ? sampleCount :
+					(k + 1)*sampleCount / clusterCount);
+				rng.fill(pointChunk, cv::RNG::NORMAL, cv::Scalar(center.x, center.y), cv::Scalar(img.cols*0.05, img.rows*0.05));
+			}
+			randShuffle(points, 1, &rng);
+			kmeans(points, clusterCount, labels,
+				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0),
+				3, cv::KMEANS_PP_CENTERS, centers);
+			img = cv::Scalar::all(0);
+			for (i = 0; i < sampleCount; i++)
+			{
+				int clusterIdx = labels.at<int>(i);
+				cv::Point ipt = points.at<cv::Point2f>(i);
+				circle(img, ipt, 2, colorTab[clusterIdx], cv::FILLED, cv::LINE_AA);
+			}
+			cout << centers << endl;
+			for (i = 0; i < clusterCount; i++)
+			{
+				cv::Point ipt = cv::Point(centers.at<float>(i, 0), centers.at<float>(i, 1));
+				circle(img, ipt, 2, cv::Scalar(175, 175, 175), cv::FILLED, cv::LINE_AA);
+			}
+
+			imshow("clusters", img);
+			char key = (char)cv::waitKey();
+
+
+			cv::Mat points2(5, 3, CV_32F), labels2;
+			clusterCount = 2;
+			cv::Mat centers2;
+
+
+			points2.at<float>(0, 0) = 100;
+			points2.at<float>(0, 1) = 150;
+			points2.at<float>(0, 2) = 5;
+
+			points2.at<float>(1, 0) = 250;
+			points2.at<float>(1, 1) = 150;
+			points2.at<float>(1, 2) = 2;
+
+			points2.at<float>(2, 0) = 450;
+			points2.at<float>(2, 1) = 350;
+			points2.at<float>(2, 2) = 7;
+
+			points2.at<float>(3, 0) = 300;
+			points2.at<float>(3, 1) = 120;
+			points2.at<float>(3, 2) = 3;
+
+			points2.at<float>(4, 0) = 450;
+			points2.at<float>(4, 1) = 150;
+			points2.at<float>(4, 2) = 11;
+
+			kmeans(points2, clusterCount, labels2,
+				cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0),
+				3, cv::KMEANS_PP_CENTERS, centers2);
+
+			img = cv::Scalar::all(0);
+			for (i = 0; i < 5; i++)
+			{
+				int clusterIdx = labels2.at<int>(i);
+				cv::Point ipt = cv::Point(points2.at<float>(i, 0), points2.at<float>(i, 1));
+				circle(img, ipt, (int)points2.at<float>(i, 2), colorTab[clusterIdx], cv::FILLED, cv::LINE_AA);
+			}
+			for (i = 0; i < 2; i++)
+			{
+				cv::Point ipt = cv::Point(centers2.at<float>(i, 0), centers2.at<float>(i, 1));
+				circle(img, ipt, (int)centers2.at<float>(i, 2), cv::Scalar(175, 175, 175), cv::FILLED, cv::LINE_AA);
+			}
+
+
+			imshow("clusters", img);
+			key = (char)cv::waitKey();
+			if (key == 27 || key == 'q' || key == 'Q') // 'ESC'
+				break;
+		}
+
+
+
 	}
 	else if (string(argv[1]) == "--kaze")
 	{
-		cv::Mat src = cv::imread("testfiles/shirt1.jpg");
-		cv::Mat img = resizeImg(src);
-		if (!src.data)
+		const float inlier_threshold = 2.5f; // Distance threshold to identify inliers
+		const float nn_match_ratio = 0.8f;   // Nearest neighbor matching ratio
+
+
+		cv::Mat src1 = cv::imread("testfiles/shirt1.jpg");
+		cv::Mat img1 = resizeImg(src1, 2, 2);
+		cv::Mat src2 = cv::imread("testfiles/shirt2.jpg");
+		cv::Mat img2 = resizeImg(src2);
+		if (!src1.data)
 			return -1;
 
-		//cv::ak  
+
+		cv::Mat homography(cv::Size(3, 3), CV_32F, cv::Scalar(0));
+
+
+		homography.at<float>(cv::Point(0, 0)) = 7.6285898e-01;
+		homography.at<float>(cv::Point(1, 0)) = -2.9922929e-01;
+		homography.at<float>(cv::Point(2, 0)) = 2.2567123e+02;
+		homography.at<float>(cv::Point(0, 1)) = 3.3443473e-01;
+		homography.at<float>(cv::Point(1, 1)) = 1.0143901e+00;
+		homography.at<float>(cv::Point(2, 1)) = -7.6999973e+01;
+		homography.at<float>(cv::Point(0, 2)) = 3.4663091e-04;
+		homography.at<float>(cv::Point(1, 2)) = -1.4364524e-05;
+		homography.at<float>(cv::Point(2, 2)) = 1.0000000e+00;
+
+
+		vector<cv::KeyPoint> kpts1, kpts2;
+		cv::Mat desc1, desc2;
+
+
+		cout << kpts1.size() << endl;
+		cv::Ptr<cv::Feature2D> akaze = cv::AKAZE::create();
+		akaze->detectAndCompute(img1, cv::noArray(), kpts1, desc1);
+		//akaze->detectAndCompute(img2, cv::noArray(), kpts2, desc2);
+		cout << kpts1.size() << endl;
+
+		cv::Mat imgK1;
+		cv::drawKeypoints(img1, kpts1, imgK1);
+
+		cv::imshow("AKAKAKAKAK", imgK1);
+		cv::waitKey(0);
+
+		return 0;
+
+		/*
+		cv::BFMatcher matcher(cv::NORM_HAMMING);
+		vector< vector<cv::DMatch> > nn_matches;
+		matcher.knnMatch(desc1, desc2, nn_matches, 2);
+
+		vector<cv::KeyPoint> matched1, matched2, inliers1, inliers2;
+		vector<cv::DMatch> good_matches;
+		for (size_t i = 0; i < nn_matches.size(); i++) {
+			cv::DMatch first = nn_matches[i][0];
+			float dist1 = nn_matches[i][0].distance;
+			float dist2 = nn_matches[i][1].distance;
+
+			if (dist1 < nn_match_ratio * dist2) {
+				matched1.push_back(kpts1[first.queryIdx]);
+				matched2.push_back(kpts2[first.trainIdx]);
+			}
+		}
+
+		for (unsigned i = 0; i < matched1.size(); i++) {
+			cv::Mat col = cv::Mat::ones(3, 1, CV_64F);
+			col.at<double>(0) = matched1[i].pt.x;
+			col.at<double>(1) = matched1[i].pt.y;
+
+			col = homography * col;
+			col /= col.at<double>(2);
+			double dist = sqrt(pow(col.at<double>(0) - matched2[i].pt.x, 2) +
+				pow(col.at<double>(1) - matched2[i].pt.y, 2));
+
+			if (dist < inlier_threshold) {
+				int new_i = static_cast<int>(inliers1.size());
+				inliers1.push_back(matched1[i]);
+				inliers2.push_back(matched2[i]);
+				good_matches.push_back(cv::DMatch(new_i, new_i, 0));
+			}
+		}
+
+		cv::Mat res;
+		drawMatches(img1, inliers1, img2, inliers2, good_matches, res);
+		cv::imwrite("res.png", res);
+
+		double inlier_ratio = inliers1.size() * 1.0 / matched1.size();
+		cout << "A-KAZE Matching Results" << endl;
+		cout << "*******************************" << endl;
+		cout << "# Keypoints 1:                        \t" << kpts1.size() << endl;
+		cout << "# Keypoints 2:                        \t" << kpts2.size() << endl;
+		cout << "# Matches:                            \t" << matched1.size() << endl;
+		cout << "# Inliers:                            \t" << inliers1.size() << endl;
+		cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
+		cout << endl;
+		*/
 
 
 	}
 	else if (string(argv[1]) == "--kov")
 	{
-		cv::Mat src = cv::imread("testfiles/lindex2.jpg");
+		cv::Mat src = cv::imread("testfiles/lindex1.jpg");
 		cv::Mat img = resizeImg(src);
 		if (!src.data)
 			return -1;
@@ -264,7 +548,7 @@ int main(int argc, char* argv[])
 
 		cv::Mat bin;
 		cv::threshold(bw, bin, 240, 255, CV_THRESH_BINARY_INV);
-		
+
 		cv::Mat gau1, gau2;
 		cv::GaussianBlur(bw, gau1, cv::Size(1, 1), 0);
 		cv::GaussianBlur(bw, gau2, cv::Size(3, 3), 0);
@@ -274,7 +558,7 @@ int main(int argc, char* argv[])
 
 		cv::equalizeHist(res, res);
 
-		
+
 		////////////////
 		cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
 			cv::Size(2 * 3/*erosion_size*/ + 1, 2 * 3/*erosion_size*/ + 1),
@@ -286,7 +570,7 @@ int main(int argc, char* argv[])
 		erode(erod, erod, element);
 		////////////////
 
-		
+
 
 		cv::Mat out;
 		onlyBackground(erod, out);
@@ -294,10 +578,10 @@ int main(int argc, char* argv[])
 
 		cv::Mat edge = preformCanny(out, 80, 140);
 
-		
+
 		cv::Mat ssample = resizeImg(out, 50, 50);
 		cv::Mat upsample;
-		cv::resize(ssample, upsample, cv::Size(300,300), 0.0, 0.0, cv::INTER_NEAREST);
+		cv::resize(ssample, upsample, cv::Size(300, 300), 0.0, 0.0, cv::INTER_NEAREST);
 
 		cv::imshow("ssample", ssample);
 		cv::imshow("upsample", upsample);
@@ -341,7 +625,7 @@ int main(int argc, char* argv[])
 
 		cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT,
 			cv::Size(2 * 2/*erosion_size*/ + 1, 2 * 2/*erosion_size*/ + 1),
-			cv::Point(2,2/*erosion_size, erosion_size*/));
+			cv::Point(2, 2/*erosion_size, erosion_size*/));
 
 		/// Apply the erosion operation
 		cv::Mat erod;
@@ -352,7 +636,7 @@ int main(int argc, char* argv[])
 		//cv::morphologyEx(bw, erod, cv::MORPH_CLOSE, element);
 
 		cv::imshow("Erotion", erod);
-		
+
 
 		cv::imshow("laf", bw);
 		cv::waitKey();
@@ -393,7 +677,7 @@ int main(int argc, char* argv[])
 	{
 		cout << "Invalid arguments, use -h for help.";
 	}
-		
+
 
 	/*
 	if (argc != 2 && argc != 3)
@@ -401,11 +685,11 @@ int main(int argc, char* argv[])
 		cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
 		return -1;
 	}
-	
+
 	Mat image;
 	image = imread(argv[1], IMREAD_UNCHANGED); // Read the file
 	*/
-	
+
 	//svm_test();
 
 	//rtrees_test();
@@ -413,8 +697,8 @@ int main(int argc, char* argv[])
 	if (string(argv[1]) == "--SaRtest")
 		svmANDrfTest("readyFile2.xx", "ClothingType");
 
-	
-	
+
+
 	/*
 	if (argc == 2)
 	{
@@ -429,7 +713,7 @@ int main(int argc, char* argv[])
 	/*
 	vector<string> closest = seekUsingImage("readyFile.xx", "hmtest3.jpg", 11);
 
-	
+
 	for (int i = 0; i < closest.size();i++)
 	{
 		cout << closest[i] << endl;
@@ -437,6 +721,10 @@ int main(int argc, char* argv[])
 	*/
 	return 0;
 }
+#endif // MAIN
+
+
+
 
 /**Tests a simple search in a cataloge, with the use of SVM or RF to filter out classes.
 * 
@@ -532,10 +820,10 @@ void testModelWithImage(string trainingFilename, string testFilename, string tes
 
 		binary = binary * 255;
 
-		cv::Mat noBluredges = preformCanny(binary, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+		cv::Mat noBluredges = preformCanny(binary, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 
 		cv::Mat imgBlur = preformGaussianBlur(imgGray);
-		cv::Mat edges = preformCanny(imgBlur, CANNY_THRESH_LOW, CANNY_THRESH_HIGH);
+		cv::Mat edges = preformCanny(imgBlur, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 
 		cv::Mat coolEdge;
 		cv::Mat image = testItem->getImage();

@@ -12,6 +12,8 @@
 #include <stack>
 #include <vector>
 
+#include "Config.h"
+
 
 using namespace std;
 
@@ -27,6 +29,8 @@ cv::Mat apply2derFilt(cv::Mat src, bool vert);
 cv::Mat skeletonizeMorph(cv::Mat *binaryImg);
 cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg);
 
+void createGradiantHistogram(cv::Mat &src, cv::Mat &dst, int num);
+void rotateAndGradiant(cv::Mat &src, cv::Mat &dstX, cv::Mat &dstY, double ang);
 void thinning(const cv::Mat& src, cv::Mat& dst);
 void onlyBackground(cv::Mat& src, cv::Mat& dst);
 int maxHorizontalEdges(cv::Mat edgeImg, int minDist, int minHeight);
