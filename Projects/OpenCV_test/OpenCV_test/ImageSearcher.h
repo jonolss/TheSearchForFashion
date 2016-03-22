@@ -53,11 +53,10 @@ int guiFrontend(string catalogePath);
 inline bool validPath(const string& path);
 void clusterCataloge(vector<ClothArticle*> *cataloge, string filtType);
 
-bool t();
-cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType);
-vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string testType);
-cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, string classifierGroup);
-vector<string> oldseekUsingImage(string catalogePath, string queryPath, int n);
+//cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType);
+//vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string testType);
+//cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, string classifierGroup);
+//vector<string> oldseekUsingImage(string catalogePath, string queryPath, int n);
 
 
 #endif

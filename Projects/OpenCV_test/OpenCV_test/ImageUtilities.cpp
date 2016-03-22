@@ -103,54 +103,6 @@ cv::Mat preformCanny(cv::Mat src, double lowThresh, double highThresh)
 	return out;
 }
 
-
-cv::Mat apply2derFilt(cv::Mat src, bool vert)
-{
-	cv::Mat out(src.size(), CV_8U, cv::Scalar(120));
-	
-	for (int x = 0; x < src.size().width; x++)
-	{
-		for (int y = 0; y < src.size().height; y++)
-		{
-			uchar front, mid, back;
-			mid = (int)src.at<uchar>(y, x);
-			//cout << (int)src.at<uchar>(y, 250) << " ";
-			if (!vert)
-			{
-				if (x == src.size().width-1)
-					front = 0;
-				else
-					front = src.at<uchar>(y, x + 1);
-				if (x == 0)
-					back = 0;
-				else
-					back = src.at<uchar>(y, x - 1);
-			}
-			else
-			{
-				if (y == src.size().height-1)
-					front = 0;
-				else
-					front = src.at<uchar>(y + 1, x);
-				if (y == 0)
-					back = 0;
-				else
-					back = src.at<uchar>(y - 1, x);
-			}
-			out.at<uchar>(y, x) = (uchar)abs((int)front + (int)back - 2 * (int)mid);
-			//out.at<uchar>(y, x) = (int)src.at<uchar>(y, x);
-		}
-		/*
-		cv::imshow("Baff", src);
-		cv::imshow("Add", out);
-		cv::waitKey(0);*/
-	}
-	cv::imshow("Baff", src);
-	cv::waitKey(0);
-
-	return out;
-}
-
 /**Preformce a gaussian blur on inputed image.
 *
 * \param src Image that needs blurring.
@@ -193,14 +145,14 @@ cv::Mat normalizeHist(cv::Mat hist)
 /**Makes a histogram of chosen channel of a RGB image.
 *
 * \param img1D Image whose channel is going to be extracted.
-* \param numLevels Channel that is going to be extracted. Red 0, Green 1, Blue 2.
-* \param ...
+* \param type Channel that is going to be extracted. Red 0, Green 1, Blue 2.
+* \param numBins Number of bins that the histogram will have.
 * \return The requested channel of the input image.
 */
-cv::Mat get8bitHist(cv::Mat img1D, int numLevels, int minRange, int maxRange)
+cv::Mat get8bitHist(cv::Mat img1D, int numBins)
 {
 	cv::MatND hist, hist2;
-	int histSize[] = { numLevels };
+	int histSize[] = { numBins };
 	float hranges[] = { 0, 256 };
 	float hranges2[] = { 0, 255 }; //Takes away the background which always are completly white in test images. May also take away other bright pixels that aren't entierly white, but this shouldn't be many pixels.
 	const float* ranges[] = { hranges };
@@ -218,14 +170,13 @@ cv::Mat get8bitHist(cv::Mat img1D, int numLevels, int minRange, int maxRange)
 *
 * \param img1D Image whose channel is going to be extracted.
 * \param type Type of channel that is going to be extracted. Hue 0, Saturation 1, Value 2.
-* \param numLevels Channel that is going to be extracted. Hue 0, Saturation 1, Value 2.
-* \param ...
+* \param numBins Number of bins that the histogram will have.
 * \return The requested channel of the input image.
 */
-cv::Mat getHsvHist(cv::Mat img1D, int type, int numLevels, int minRange, int maxRange)
+cv::Mat getHsvHist(cv::Mat img1D, int type, int numBins)
 {
 	cv::MatND hist;
-	int histSize[] = { numLevels };
+	int histSize[] = { numBins };
 	int channels[] = { 0 };
 	float hranges[] = { 0, 180 };
 	float sranges[] = { 0, 256 };
@@ -281,25 +232,7 @@ cv::Mat getChannel(cv::Mat src, int channel)
 * \param input Image that is going to be resized.
 * \return The resulting resized image.
 */
-/*cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
-{
-	cv::Mat out(cv::Size(sizeX, sizeY), CV_8UC3);
-
-	int inpHt = input.size().height;
-	int inpWh = input.size().width;
-	if (inpWh > sizeX || inpHt > sizeY)
-	{
-		cv::resize(input, out, cv::Size(sizeX, sizeY), 0.0, 0.0, cv::INTER_AREA);
-	}
-	else if (inpWh < sizeX || inpHt < sizeY)
-	{
-		cv::resize(input, out, cv::Size(sizeX, sizeY), 0.0, 0.0, cv::INTER_LINEAR);
-	}
-
-	return out;
-}*/
-
-cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY) //int sides)
+cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
 {
 	int sides = sizeX;
 
@@ -347,6 +280,11 @@ cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY) //int sides)
 	return out;
 }
 
+/**Saves an openCV matrix to an open file.
+* 
+* \param input The image that is going to be stored.
+* \param outFile A filestream for an output file.
+*/
 void saveMat(cv::Mat input, ofstream *outFile)
 {
 	int width    = input.size().width;
@@ -354,11 +292,6 @@ void saveMat(cv::Mat input, ofstream *outFile)
 	int type     = input.type();
 	int elemSize = input.elemSize();
 	char* data   = (char*)input.data;
-
-	//cout << width << endl;
-	//cout << height << endl;
-	//cout << type << endl;
-	//cout << elemSize << endl;
 	
 	int *head = (int*)calloc(4, sizeof(int));
 	*head = width;
@@ -372,6 +305,11 @@ void saveMat(cv::Mat input, ofstream *outFile)
 	outFile->write((char*)data, bytes);
 }
 
+/**Loades an openCV matrix from an open file.
+*
+* \param inFile A filestream for an input file.
+* \return The stored matrix.
+*/
 cv::Mat loadMat(ifstream *inFile)
 {
 	int width;
@@ -402,7 +340,11 @@ cv::Mat loadMat(ifstream *inFile)
 	return res;
 }
 
-
+/**Makes a topological skeleton by using morphological operators.
+*
+* \param binaryImg An binary image that is going to be skeletonised.
+* \return The topological skeleton of the input image.
+*/
 cv::Mat skeletonizeMorph(cv::Mat *binaryImg)
 {
 	cv::Mat skel(binaryImg->size(), CV_8UC1, cv::Scalar(0));
@@ -426,182 +368,6 @@ cv::Mat skeletonizeMorph(cv::Mat *binaryImg)
 
 	return skel;
 }
-
-class Box3x3
-{
-public:
-	uchar p[9];
-
-	Box3x3(cv::Mat mat, cv::Point point)
-	{
-		cv::Point poi = point + cv::Point(1, 1);
-		cv::Mat padd(mat.rows+2,mat.cols+2, CV_8U, cv::Scalar(0));
-		mat.copyTo(padd(cv::Rect(1, 1, mat.cols, mat.rows)));
-		p[0] = padd.at<uchar>(poi);
-		p[1] = padd.at<uchar>(poi + cv::Point(0, -1));
-		p[2] = padd.at<uchar>(poi + cv::Point(1, -1));
-		p[3] = padd.at<uchar>(poi + cv::Point(1, 0));
-		p[4] = padd.at<uchar>(poi + cv::Point(1, 1));
-		p[5] = padd.at<uchar>(poi + cv::Point(0, 1));
-		p[6] = padd.at<uchar>(poi + cv::Point(-1, 1));
-		p[7] = padd.at<uchar>(poi + cv::Point(-1, 0));
-		p[8] = padd.at<uchar>(poi + cv::Point(-1, -1));
-	}
-};
-
-void zhangSuenThinningIteration(cv::Mat *img, bool odd)
-{
-	cv::Mat chng(img->size(), CV_8U);
-	img->copyTo(chng);
-
-	for (int y = 0; y < img->size().height; y++)
-	{
-		for (int x = 0; x < img->size().width; x++)
-		{
-			if(img->at<uchar>(cv::Point(x, y)) != 0)
-			{
-				Box3x3 box(*img, cv::Point(x, y));
-
-				//for (int i = 0; i < 9; i++)
-				//	cout << (int)box.p[i] << endl;
-
-				int A = (box.p[8] == 0 && box.p[1] == 1) + (box.p[1] == 0 && box.p[2] == 1) +
-					(box.p[2] == 0 && box.p[3] == 1) + (box.p[3] == 0 && box.p[4] == 1) +
-					(box.p[4] == 0 && box.p[5] == 1) + (box.p[5] == 0 && box.p[6] == 1) +
-					(box.p[6] == 0 && box.p[7] == 1) + (box.p[7] == 0 && box.p[8] == 1);
-
-				int B = box.p[1] + box.p[2] + box.p[3] + box.p[4] +
-					box.p[5] + box.p[6] + box.p[7] + box.p[8];
-
-				int m1, m2;
-				if (odd)
-				{
-					m1 = box.p[1] * box.p[3] * box.p[5];
-					m2 = box.p[3] * box.p[5] * box.p[7];
-				}
-				else
-				{
-					m1 = box.p[1] * box.p[3] * box.p[7];
-					m2 = box.p[1] * box.p[5] * box.p[7];
-				}
-
-				//cout << "A: " << A << endl;
-				//cout << "B: " << B << endl;
-				//cout << "m1: " << m1 << endl;
-				//cout << "m2: " << m2 << endl;
-
-				//cout << "(" << x << "," << y << ")" << endl;
-				//char b;
-				//cin >> b;
-
-				if (2 <= B && B <= 6 && A == 1 && m1 == 0 && m2 == 0) // <-- det här inträffar aldrig =/
-				{
-					chng.at<uchar>(cv::Point(x, y)) = 0;
-				}
-
-				/*
-				if(odd)
-				{
-					int C = int(~box.p[2] & (box.p[3] | box.p[4])) +
-						int(~box.p[4] & (box.p[5] | box.p[6])) +
-						int(~box.p[6] & (box.p[7] | box.p[8])) +
-						int(~box.p[8] & (box.p[1] | box.p[2]));
-					if (C == 1) {
-						/// calculate N
-						int N1 = int(box.p[1] | box.p[2]) +
-							int(box.p[3] | box.p[4]) +
-							int(box.p[5] | box.p[6]) +
-							int(box.p[7] | box.p[8]);
-						int N2 = int(box.p[2] | box.p[3]) +
-							int(box.p[4] | box.p[5]) +
-							int(box.p[6] | box.p[7]) +
-							int(box.p[8] | box.p[1]);
-						int N = min(N1, N2);
-						if ((N == 2) || (N == 3)) {
-							int E = (box.p[6] | box.p[7] | ~box.p[1]) & box.p[8];
-							if (E == 0) {
-								chng.at<uchar>(cv::Point(x, y)) = 0;
-							}
-						}
-					}
-				}
-				else
-				{
-					int C = int(~box.p[2] & (box.p[3] | box.p[4])) +
-						int(~box.p[4] & (box.p[5] | box.p[6])) +
-						int(~box.p[6] & (box.p[7] | box.p[8])) +
-						int(~box.p[8] & (box.p[1] | box.p[2]));
-					if (C == 1) {
-						/// calculate N
-						int N1 = int(box.p[1] | box.p[2]) +
-							int(box.p[3] | box.p[4]) +
-							int(box.p[5] | box.p[6]) +
-							int(box.p[7] | box.p[8]);
-						int N2 = int(box.p[2] | box.p[3]) +
-							int(box.p[4] | box.p[5]) +
-							int(box.p[6] | box.p[7]) +
-							int(box.p[8] | box.p[1]);
-						int N = min(N1, N2);
-						if ((N == 2) || (N == 3)) {
-							int E = (box.p[6] | box.p[7] | ~box.p[1]) & box.p[8];
-							if (E == 0) {
-								chng.at<uchar>(cv::Point(x, y)) = 0;
-							}
-
-							int c3 = (box.p[2] | box.p[3] | ~box.p[5]) & box.p[4];
-							if (c3 == 0) {
-								chng.at<uchar>(cv::Point(x, y)) = 0;
-							}
-						}
-					}
-				}
-				*/
-			}
-		}
-	}
-	chng.copyTo(*img);
-}
-
-cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg)
-{
-	cv::Mat img(binaryImg.size(),CV_8U);
-	binaryImg.copyTo(img);
-	
-
-	cv::Mat prev = cv::Mat::zeros(img.size(), CV_8U);
-	cv::Mat diff;
-
-	
-	do
-	{
-		zhangSuenThinningIteration(&img, true);
-		zhangSuenThinningIteration(&img, false);
-
-		cv::absdiff(img, prev, diff);
-		img.copyTo(prev);
-	} while (cv::countNonZero(diff) > 0);
-
-	return img;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 void thinningIteration(cv::Mat& img, int iter)

@@ -1,33 +1,50 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   Main.cpp
-  ImageSearcher.cpp
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(46): warning C4101: 'cAllMessages': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(435): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(440): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(329): warning C4101: 'e': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(368): warning C4101: 'e': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(413): warning C4101: 'e': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(434): warning C4101: 'tmp': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(589): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(594): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(588): warning C4101: 'tmp': unreferenced local variable
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(808): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(917): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1251): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1270): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1303): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1319): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\main.cpp(361): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\main.cpp(367): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  ImageUtilities.cpp
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imageutilities.cpp(307): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imageutilities.cpp(789): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imageutilities.cpp(829): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imageutilities.cpp(830): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imageutilities.cpp(837): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
   ClothArticle.cpp
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(573): warning C4102: 'defualt': unreferenced label
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(743): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(807): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(808): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(915): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(924): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(932): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(940): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(630): warning C4102: 'defualt': unreferenced label
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(800): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(864): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(865): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(972): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(981): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(989): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(997): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   Generating Code...
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(576): warning C4715: 'to_string': not all control paths return a value
-  Skipping... (no relevant changes detected)
-  Config.cpp
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(633): warning C4715: 'to_string': not all control paths return a value
+  Compiling...
+  ImageSearcher.cpp
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(48): warning C4101: 'cAllMessages': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(388): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(393): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(272): warning C4101: 'e': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(316): warning C4101: 'e': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(366): warning C4101: 'e': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(387): warning C4101: 'tmp': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(868): warning C4244: '=': conversion from 'WCHAR' to 'char', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(875): warning C4244: '=': conversion from 'WCHAR' to 'char', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(935): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(940): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(934): warning C4101: 'tmp': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1159): warning C4244: 'return': conversion from 'WPARAM' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1225): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1230): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1224): warning C4101: 'tmp': unreferenced local variable
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1463): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1634): warning C4305: '=': truncation from 'double' to 'float'
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1636): warning C4305: '=': truncation from 'double' to 'float'
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1638): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1856): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1867): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1942): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\imagesearcher.cpp(1944): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  Generating Code...
+Config.obj : warning LNK4099: PDB 'vc140.pdb' was not found with 'Config.obj' or at 'C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Debug\vc140.pdb'; linking object as if no debug info
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Debug\The_Search_For_Fashion.exe

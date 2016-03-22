@@ -20,12 +20,11 @@ using namespace std;
 cv::Mat resizeImg(cv::Mat input, int sizeX = 300, int sizeY = 300);
 cv::Mat getChannel(cv::Mat src, int channel);
 cv::Mat normalizeHist(cv::Mat hist);
-cv::Mat get8bitHist(cv::Mat img1D, int numLevels = 256, int minRange = 0, int maxRange = 256);
-cv::Mat getHsvHist(cv::Mat img1D, int type, int numLevels = 32, int minRange = 0, int maxRange = 256);
+cv::Mat get8bitHist(cv::Mat img1D, int numLevels = 32);
+cv::Mat getHsvHist(cv::Mat img1D, int type, int numLevels = 32);
 cv::Mat preformGaussianBlur(cv::Mat src);
 cv::Mat preformCanny(cv::Mat src, double lowThresh, double highThresh);
 cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size);
-cv::Mat apply2derFilt(cv::Mat src, bool vert);
 cv::Mat skeletonizeMorph(cv::Mat *binaryImg);
 cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg);
 

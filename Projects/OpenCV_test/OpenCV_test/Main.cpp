@@ -28,18 +28,10 @@
 //using namespace cv::ml;
 using namespace std;
 
-void sift_test();
-void fast_test();
-void svm_test();
-void rtrees_test();
 void svmANDrfTest(string filename, string testType);
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
 
 
-
-
-#define MAIN
-#ifdef MAIN
 int main(int argc, char* argv[])
 {
 	Config::get().readConfigFile(CONFIG_PATH);
@@ -57,6 +49,10 @@ int main(int argc, char* argv[])
 	else if (string(argv[1]) == "-f")
 	{
 		frontend("readyFile2.xx");
+	}
+	else if (string(argv[1]) == "--window")
+	{
+		guiFrontend("readyFile2.xx");
 	}
 	else if (string(argv[1]) == "-b")
 	{
@@ -77,179 +73,6 @@ int main(int argc, char* argv[])
 	else if (string(argv[1]) == "--test")
 	{
 		testModelWithImage("readyFile2.xx", "indiskatest0.jpg", "ClothingType", false);  //<-- Bör funka på dirren
-	}
-	else if (string(argv[1]) == "--pirate")
-	{
-		//Mat output(frame1.rows * 2, frame1.cols * 2, frame1.type());
-		//output.setTo(0);
-
-		//frame1.copyTo(output(Rect(0, 0, frame1.cols, frame1.rows)));
-
-		//cv::Mat input = cv::imread("indiskatest0.jpg", -1);
-
-		//cv::Mat img = resizeImg(input, 300, 300);
-
-		cv::Mat back(cv::Size(20, 25), CV_8U, cv::Scalar(0));
-		cv::Mat front(cv::Size(10, 5), CV_8U, cv::Scalar(255));
-		front.copyTo(back(cv::Rect(0, 0, front.cols, front.rows)));
-
-		cv::Mat blopp(back);
-		blopp /= 255;
-		cv::Mat zSkeleton = skeletonizeZhangSuen(blopp);
-		//cv::Mat skeleton = skeletonizeMorph(&back);
-
-		cout << blopp << endl;
-
-		cout << zSkeleton << endl;
-
-
-		//ClothArticle *art = new ClothArticle("kov", "./testfiles/shirt3.png", "Rod", "Top", 0);
-
-		/*
-		cv::Mat img = cv::imread("./testfiles/dress0.jpg", cv::IMREAD_UNCHANGED);
-		cv::Mat tmp2 = resizeImg(img, 300, 300);
-
-		cv::Mat gray;
-		cv::cvtColor(tmp2, gray, CV_BGR2GRAY);
-		cv::Mat der = apply2derFilt(gray, true);
-
-		cv::Mat thr;
-		cv::threshold(der, thr, 120, cv::THRESH_BINARY_INV, cv::THRESH_BINARY);
-
-		thr *= 255;
-		*/
-
-		cv::Mat img = cv::imread("./testfiles/skirt0.jpg", cv::IMREAD_UNCHANGED);
-		cv::Mat img2 = resizeImg(img, 300, 300);
-
-		cv::Mat imgGray;
-		cv::cvtColor(img, imgGray, cv::COLOR_BGR2GRAY);
-
-		cv::Mat binary;
-		cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
-		binary = binary * 255;
-
-		//cout << binary << endl;
-
-		cout << "torvald " << endl;
-
-		cv::namedWindow("binary", 0);
-		cv::imshow("binary", binary);
-
-		cv::waitKey(0);
-
-		thinning(binary, binary);
-
-		cv::namedWindow("binary", 0);
-		cv::imshow("binary", binary);
-
-		cv::waitKey(0);
-
-		//cv::Mat binary2 = resizeImg(binary, 75, 75);
-
-
-
-		//cv::Mat binary3(binary.size(), CV_8U);
-		//binary.copyTo(binary3);
-		//binary3 /= 255;
-		//cv::Mat skeleton5 = skeletonizeZhangSuen(binary3);
-		//skeleton5 *= 255;
-
-		//cv::namedWindow("skeleton5", 0);
-		//cv::imshow("skeleton5", skeleton5);
-
-		cv::waitKey(0);
-		cv::Mat skeleton2 = skeletonizeMorph(&binary);
-		//cv::Mat skeleton4 = skeletonizeMorph(&binary2);
-
-		cv::namedWindow("img", 0);
-		cv::imshow("img", img);
-
-		cv::namedWindow("skeleton2", 0);
-		cv::imshow("skeleton2", skeleton2);
-
-		//cv::namedWindow("skeleton4", 0);
-		//cv::imshow("skeleton4", skeleton4);
-
-		/*
-		cv::namedWindow("THG", 0);
-		cv::imshow("THG", thr);
-
-		cv::namedWindow("BA", 0);
-		cv::imshow("BA", gray);
-
-		cv::namedWindow("DER", 0);
-		cv::imshow("DER", der);
-		*/
-		cv::waitKey(0);
-
-		/*
-		ofstream outFile("b.bop", ios::out | ios::binary | ios::ate);
-		if(outFile.is_open())
-		{
-			saveImgFeats(art->getImgFeats(), &outFile);
-		}
-		outFile.close();
-		cout << "Igenom första." << endl;
-
-		ifstream inFile("b.bop", ios::in | ios::binary);
-		if (inFile.is_open())
-		{
-			ImageFeatures *bop = loadImgFeats(&inFile); // <--- Ger ut ImageFeatures med tomma vectorer
-
-			delete bop;
-		}
-		inFile.close();
-		*/
-
-		/*
-		vector<ClothArticle*> kov;
-		kov.push_back(art);
-		kov.push_back(art);
-		kov.push_back(art);
-
-		saveCataloge(&kov, "attans.bop");
-		vector<ClothArticle*> *vok;
-		vok = loadCataloge("attans.bop");
-		cv::imshow("muffs", vok->at(0)->getImage());
-		cv::waitKey(0);
-		*/
-
-		/*
-		vector<ClothArticle*> *mov = readCatalogeFromFile("readyFile3.xx", false);
-		saveCataloge(mov, "kov.try");
-		vector<ClothArticle*> *moe = loadCataloge("kov.try");
-
-		cout << mov->at(0)->getImgFeats()->getEdgeHist(0).at<float>(0, 0) << endl;
-		cout << moe->at(0)->getImgFeats()->getEdgeHist(0).at<float>(0, 0) << endl;
-		*/
-
-
-
-
-
-		ofstream boutFile("b.bop", ios::out | ios::binary | ios::ate);
-		if (boutFile.is_open())
-		{
-			saveMat(back, &boutFile);
-			boutFile.close();
-			cout << "before: " << (int)back.at<uchar>(0, 0) << endl;
-		}
-
-
-		ifstream binFile("b.bop", ios::in | ios::binary);
-		if (binFile.is_open())
-		{
-			cv::Mat loaded = loadMat(&binFile);
-			binFile.close();
-			cout << "after: " << (int)loaded.at<uchar>(0, 0) << endl;
-		}
-
-
-		//cv::imshow("laugh", loaded);
-		//cv::waitKey(0);
-
-		return 0;
 	}
 	else if (string(argv[1]) == "--sobel")
 	{
@@ -287,46 +110,6 @@ int main(int argc, char* argv[])
 		cv::waitKey();
 
 	}
-	else if (string(argv[1]) == "--window")
-	{
-		string query = "lök\nstolpe\nkadaver\n";
-
-		string sTmp = query.substr(query.find('\n') + 1, query.length()  - query.find('\n'));
-		string inputPath = sTmp.substr(0, sTmp.find('\n'));
-
-		cout << sTmp << endl;
-		cout << "---------------------------" << endl;
-		cout << inputPath << endl;
-
-		guiFrontend("readyFile2.xx");
-
-
-
-
-	}
-	else if (string(argv[1]) == "--rotate")
-	{
-		cv::Mat src1 = cv::imread("testfiles/checkered0.jpg");
-		cv::Mat img1 = resizeImg(src1, 300, 300);
-
-		cv::Mat hist;
-		createGradiantHistogram(img1, hist, 4);
-
-	}
-	else if (string(argv[1]) == "--knug")
-	{
-		vector<ClothArticle*> *allArticles = readCatalogeFromFile("readyFile2.xx", false);
-		clusterCataloge(allArticles, "Clusterer");
-
-		cout << allArticles->at(0)->getClusterId() << endl;
-		cout << allArticles->at(1)->getClusterId() << endl;
-		cout << allArticles->at(2)->getClusterId() << endl;
-		cout << allArticles->at(3)->getClusterId() << endl;
-		cout << allArticles->at(4)->getClusterId() << endl;
-		cout << allArticles->at(5)->getClusterId() << endl;
-
-
-	}
 	else if (string(argv[1]) == "--cluster")
 	{
 		const int MAX_CLUSTERS = 5;
@@ -340,7 +123,10 @@ int main(int argc, char* argv[])
 		};
 
 		cv::Mat img(500, 500, CV_8UC3);
+		cv::Mat img2(500, 500, CV_8UC3);
 		cv::RNG rng(12345);
+
+		
 
 		while (true)
 		{
@@ -351,6 +137,8 @@ int main(int argc, char* argv[])
 			clusterCount = MIN(clusterCount, sampleCount);
 			cv::Mat centers;
 
+			cv::Mat trainingData(sampleCount, 2, CV_32F);
+			vector<int> tLabels;
 
 			/* generate random sample from multigaussian distribution */
 			for (k = 0; k < clusterCount; k++)
@@ -372,7 +160,10 @@ int main(int argc, char* argv[])
 			{
 				int clusterIdx = labels.at<int>(i);
 				cv::Point ipt = points.at<cv::Point2f>(i);
-				circle(img, ipt, 2, colorTab[clusterIdx], cv::FILLED, cv::LINE_AA);
+				circle(img, ipt, 2, colorTab[clusterIdx] / 2, cv::FILLED, cv::LINE_AA);
+				trainingData.at<float>(i, 0) = points.at<cv::Point2f>(i).y;
+				trainingData.at<float>(i, 1) = points.at<cv::Point2f>(i).x;
+				tLabels.push_back(labels.at<int>(i));
 			}
 			cout << centers << endl;
 			for (i = 0; i < clusterCount; i++)
@@ -382,9 +173,119 @@ int main(int argc, char* argv[])
 			}
 
 			imshow("clusters", img);
+			
+			cv::Mat labelsMat(tLabels.size(), 1, CV_32SC1);
+			for (int i = 0; i < tLabels.size(); i++)
+			{
+				labelsMat.at<int>(i, 0) = tLabels[i];
+			}
+
+			cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainingData, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat);
+
+
+			cv::Ptr<cv::ml::RTrees> rt = cv::ml::RTrees::create();
+
+			rt->setMaxDepth(20);
+			rt->setMinSampleCount(20);
+			rt->setMaxCategories(40);
+
+			rt->setCalculateVarImportance(false);
+			rt->setRegressionAccuracy(0.0f);
+			rt->setPriors(cv::Mat());
+
+			rt->train(tData, 0);
+
+			cv::Vec3b green(0, 255, 0), blue(255, 0, 0), red(0, 0, 255), yellow(255, 255, 0);
+			cv::Vec3b white(255, 255, 255), black(0, 0, 0), purple(255, 0, 255), frg(0, 255, 255);
+			// Show the decision regions given by the SVM
+			for (int i = 0; i < img2.rows; ++i)
+			{
+				for (int j = 0; j < img2.cols; ++j)
+				{
+					cv::Mat sampleMat = (cv::Mat_<float>(1, 2) << i, j);
+					cv::Mat predictResponse;
+					float predicted = rt->predict(sampleMat);
+
+
+					if (predicted == 0)
+						img2.at<cv::Vec3b>(i, j) = green / 2;
+					else if (predicted == 1)
+						img2.at<cv::Vec3b>(i, j) = blue / 2;
+					else if (predicted == 2)
+						img2.at<cv::Vec3b>(i, j) = red / 2;
+					else if (predicted == 3)
+						img2.at<cv::Vec3b>(i, j) = yellow / 2;
+					else if (predicted == 4)
+						img2.at<cv::Vec3b>(i, j) = white / 2;
+					else if (predicted == 5)
+						img2.at<cv::Vec3b>(i, j) = black / 2;
+					else if (predicted == 6)
+						img2.at<cv::Vec3b>(i, j) = purple / 2;
+					else
+						img2.at<cv::Vec3b>(i, j) = frg / 2;
+				}
+			}
+
+			cv::imshow("RT Simple Example", img2); // show it to the user
+
+
+			cv::Mat both(img2.size(), CV_8UC3);
+			cv::add(img, img2, both);
+
+			cv::imshow("both", both);
+
+
+
+
+			cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+			svm->setType(cv::ml::SVM::C_SVC);
+			svm->setKernel(cv::ml::SVM::LINEAR);
+			svm->setGamma(1); 
+			//svm->setKernel(cv::ml::SVM::CHI2);
+			svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
+
+			svm->train(tData, 0);
+
+			for (int i = 0; i < img2.rows; ++i)
+			{
+				for (int j = 0; j < img2.cols; ++j)
+				{
+					cv::Mat sampleMat = (cv::Mat_<float>(1, 2) << i, j);
+					cv::Mat predictResponse;
+					float predicted = svm->predict(sampleMat);
+
+
+					if (predicted == 0)
+						img2.at<cv::Vec3b>(i, j) = green / 2;
+					else if (predicted == 1)
+						img2.at<cv::Vec3b>(i, j) = blue / 2;
+					else if (predicted == 2)
+						img2.at<cv::Vec3b>(i, j) = red / 2;
+					else if (predicted == 3)
+						img2.at<cv::Vec3b>(i, j) = yellow / 2;
+					else if (predicted == 4)
+						img2.at<cv::Vec3b>(i, j) = white / 2;
+					else if (predicted == 5)
+						img2.at<cv::Vec3b>(i, j) = black / 2;
+					else if (predicted == 6)
+						img2.at<cv::Vec3b>(i, j) = purple / 2;
+					else
+						img2.at<cv::Vec3b>(i, j) = frg / 2;
+				}
+			}
+
+
+			cv::imshow("SVM Simple Example", img2); // show it to the user
+
+			cv::add(img, img2, both);
+
+			cv::imshow("both2", both);
+
+
 			char key = (char)cv::waitKey();
 
 
+			/*
 			cv::Mat points2(5, 3, CV_32F), labels2;
 			clusterCount = 2;
 			cv::Mat centers2;
@@ -430,6 +331,7 @@ int main(int argc, char* argv[])
 
 			imshow("clusters", img);
 			key = (char)cv::waitKey();
+			*/
 			if (key == 27 || key == 'q' || key == 'Q') // 'ESC'
 				break;
 		}
@@ -437,106 +339,7 @@ int main(int argc, char* argv[])
 
 
 	}
-	else if (string(argv[1]) == "--kaze")
-	{
-		const float inlier_threshold = 2.5f; // Distance threshold to identify inliers
-		const float nn_match_ratio = 0.8f;   // Nearest neighbor matching ratio
-
-
-		cv::Mat src1 = cv::imread("testfiles/shirt1.jpg");
-		cv::Mat img1 = resizeImg(src1, 2, 2);
-		cv::Mat src2 = cv::imread("testfiles/shirt2.jpg");
-		cv::Mat img2 = resizeImg(src2);
-		if (!src1.data)
-			return -1;
-
-
-		cv::Mat homography(cv::Size(3, 3), CV_32F, cv::Scalar(0));
-
-
-		homography.at<float>(cv::Point(0, 0)) = 7.6285898e-01;
-		homography.at<float>(cv::Point(1, 0)) = -2.9922929e-01;
-		homography.at<float>(cv::Point(2, 0)) = 2.2567123e+02;
-		homography.at<float>(cv::Point(0, 1)) = 3.3443473e-01;
-		homography.at<float>(cv::Point(1, 1)) = 1.0143901e+00;
-		homography.at<float>(cv::Point(2, 1)) = -7.6999973e+01;
-		homography.at<float>(cv::Point(0, 2)) = 3.4663091e-04;
-		homography.at<float>(cv::Point(1, 2)) = -1.4364524e-05;
-		homography.at<float>(cv::Point(2, 2)) = 1.0000000e+00;
-
-
-		vector<cv::KeyPoint> kpts1, kpts2;
-		cv::Mat desc1, desc2;
-
-
-		cout << kpts1.size() << endl;
-		cv::Ptr<cv::Feature2D> akaze = cv::AKAZE::create();
-		akaze->detectAndCompute(img1, cv::noArray(), kpts1, desc1);
-		//akaze->detectAndCompute(img2, cv::noArray(), kpts2, desc2);
-		cout << kpts1.size() << endl;
-
-		cv::Mat imgK1;
-		cv::drawKeypoints(img1, kpts1, imgK1);
-
-		cv::imshow("AKAKAKAKAK", imgK1);
-		cv::waitKey(0);
-
-		return 0;
-
-		/*
-		cv::BFMatcher matcher(cv::NORM_HAMMING);
-		vector< vector<cv::DMatch> > nn_matches;
-		matcher.knnMatch(desc1, desc2, nn_matches, 2);
-
-		vector<cv::KeyPoint> matched1, matched2, inliers1, inliers2;
-		vector<cv::DMatch> good_matches;
-		for (size_t i = 0; i < nn_matches.size(); i++) {
-			cv::DMatch first = nn_matches[i][0];
-			float dist1 = nn_matches[i][0].distance;
-			float dist2 = nn_matches[i][1].distance;
-
-			if (dist1 < nn_match_ratio * dist2) {
-				matched1.push_back(kpts1[first.queryIdx]);
-				matched2.push_back(kpts2[first.trainIdx]);
-			}
-		}
-
-		for (unsigned i = 0; i < matched1.size(); i++) {
-			cv::Mat col = cv::Mat::ones(3, 1, CV_64F);
-			col.at<double>(0) = matched1[i].pt.x;
-			col.at<double>(1) = matched1[i].pt.y;
-
-			col = homography * col;
-			col /= col.at<double>(2);
-			double dist = sqrt(pow(col.at<double>(0) - matched2[i].pt.x, 2) +
-				pow(col.at<double>(1) - matched2[i].pt.y, 2));
-
-			if (dist < inlier_threshold) {
-				int new_i = static_cast<int>(inliers1.size());
-				inliers1.push_back(matched1[i]);
-				inliers2.push_back(matched2[i]);
-				good_matches.push_back(cv::DMatch(new_i, new_i, 0));
-			}
-		}
-
-		cv::Mat res;
-		drawMatches(img1, inliers1, img2, inliers2, good_matches, res);
-		cv::imwrite("res.png", res);
-
-		double inlier_ratio = inliers1.size() * 1.0 / matched1.size();
-		cout << "A-KAZE Matching Results" << endl;
-		cout << "*******************************" << endl;
-		cout << "# Keypoints 1:                        \t" << kpts1.size() << endl;
-		cout << "# Keypoints 2:                        \t" << kpts2.size() << endl;
-		cout << "# Matches:                            \t" << matched1.size() << endl;
-		cout << "# Inliers:                            \t" << inliers1.size() << endl;
-		cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
-		cout << endl;
-		*/
-
-
-	}
-	else if (string(argv[1]) == "--kov")
+	else if (string(argv[1]) == "--erosion_test") // Erosion test
 	{
 		cv::Mat src = cv::imread("testfiles/lindex1.jpg");
 		cv::Mat img = resizeImg(src);
@@ -607,10 +410,10 @@ int main(int argc, char* argv[])
 
 		cv::waitKey();
 	}
-	else if (string(argv[1]) == "--matt")
+	else if (string(argv[1]) == "--skeleton_test") //Skeleton test
 	{
 
-		cv::Mat src = cv::imread("testfiles/shirt5.jpg");
+		cv::Mat src = cv::imread("testfiles/shirt4.jpg");
 		cv::Mat img = resizeImg(src);
 		if (!src.data)
 			return -1;
@@ -618,7 +421,6 @@ int main(int argc, char* argv[])
 		cv::Mat bw;
 		cv::cvtColor(img, bw, CV_BGR2GRAY);
 		cv::imshow("kaf", bw);
-		cv::waitKey();
 		cv::threshold(bw, bw, 240, 255, CV_THRESH_BINARY_INV);
 
 
@@ -639,7 +441,6 @@ int main(int argc, char* argv[])
 
 
 		cv::imshow("laf", bw);
-		cv::waitKey();
 
 		cv::Mat thinned;
 		thinning(erod, thinned);
@@ -678,50 +479,12 @@ int main(int argc, char* argv[])
 		cout << "Invalid arguments, use -h for help.";
 	}
 
-
-	/*
-	if (argc != 2 && argc != 3)
-	{
-		cout << " Usage: display_image ImageToLoadAndDisplay" << endl;
-		return -1;
-	}
-
-	Mat image;
-	image = imread(argv[1], IMREAD_UNCHANGED); // Read the file
-	*/
-
-	//svm_test();
-
-	//rtrees_test();
-
 	if (string(argv[1]) == "--SaRtest")
 		svmANDrfTest("readyFile2.xx", "ClothingType");
 
 
-
-	/*
-	if (argc == 2)
-	{
-		frontLoop();
-	}
-	else
-	{
-		t();
-	}
-	*/
-
-	/*
-	vector<string> closest = seekUsingImage("readyFile.xx", "hmtest3.jpg", 11);
-
-
-	for (int i = 0; i < closest.size();i++)
-	{
-		cout << closest[i] << endl;
-	}
-	*/
 	return 0;
 }
-#endif // MAIN
 
 
 
@@ -991,259 +754,4 @@ void svmANDrfTest(string filename, string testType)
 	std::cout << "RT  Best HitRatio: " << bestRTHitRatio << endl;
 	std::cout << "SVM Best HitRatio: " << bestSVMHitRatio << endl;
 
-}
-
-void surf_test(cv::Mat image)
-{
-	;
-
-}
-
-void rtrees_test()
-{
-	// Data for visual representation
-	int width = 512, height = 512;
-	cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
-
-	// Set up training data
-	int labels[4] = { 1, -1, 1, 1 };
-	cv::Mat labelsMat(4, 1, CV_32SC1, labels);
-
-	float trainingData[4][9] = { { 0,0,0,0,0,0,0,0,0 },{ 100,100,100,100,100,100,100,100,100 },{ 0,0,0,0,0,0,0,0,0 },{ 0,0,0,0,0,0,0,0,0 } };
-	//float trainingData[4][9] = { { 100,100,100,100,0,100,100,100,100 },{ 100,100,100,100,100,100,100,100,100 },{ 100,100,100, 0,0,0,100,100,100 },{ 0,100,0, 100,0,100 , 0,100,0 } };
-	cv::Mat trainingDataMat(4, 9, CV_32FC1, trainingData);
-
-	int labels2[7] = { 0,1,-1,1,1,-1,0 };
-	cv::Mat labelsMat2(7, 1, CV_32SC1, labels2);
-	float trainingData2[7][2] = { {100,100},{300,80},{80,60},{30,20},{10,30}, {150,200},{130,250}};
-	cv::Mat trainingDataMat2(7, 2, CV_32FC1, trainingData2);
-	cv::Ptr<cv::ml::TrainData> tData2 = cv::ml::TrainData::create(trainingDataMat2, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat2);
-
-	
-
-	cv::Mat responses;
-
-	cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainingDataMat, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat);
-	cv::Ptr<cv::ml::TrainData> trData = cv::ml::TrainData::create(trainingDataMat, cv::ml::SampleTypes::ROW_SAMPLE, responses, cv::noArray(), cv::noArray(), cv::noArray());
-
-
-
-	cv::Ptr<cv::ml::RTrees> rt = cv::ml::RTrees::create();
-
-	rt->setMaxDepth(5);
-	rt->setMinSampleCount(5);
-	rt->setMaxCategories(10);
-
-	rt->setCalculateVarImportance(false);
-	rt->setRegressionAccuracy(0.0f);
-	rt->setPriors(cv::Mat());
-
-	rt->train(tData2, 0);
-
-	cv::Mat sampleMat2 = (cv::Mat_<float>(1, 2) << 100, 100);
-	cv::Mat sampleMat = (cv::Mat_<float>(1, 9) << 100, 100, 100, 100, 100, 100, 100, 100, 100);
-	float predictResponse;
-	predictResponse = rt->predict(sampleMat2);
-
-
-	cout << "Predict 1: " << predictResponse << endl;
-
-	sampleMat2 = (cv::Mat_<float>(1, 2) << 300, 80);
-	predictResponse = rt->predict(sampleMat2);
-	cout << "Predict 2: " << predictResponse << endl;
-
-	cout << "HEJ" << endl;
-
-	cv::Vec3b green(0, 255, 0), blue(255, 0, 0), red(0, 0, 255);
-	// Show the decision regions given by the SVM
-	for (int i = 0; i < image.rows; ++i)
-		for (int j = 0; j < image.cols; ++j)
-		{
-			cv::Mat sampleMat = (cv::Mat_<float>(1, 2) << i, j);
-			cv::Mat predictResponse;
-			float predicted = rt->predict(sampleMat);
-
-
-			if (predicted == 1)
-				image.at<cv::Vec3b>(i, j) = green;
-			else if (predicted == -1)
-				image.at<cv::Vec3b>(i, j) = blue;
-			else
-				image.at<cv::Vec3b>(i, j) = red;
-
-		}
-
-	imshow("SVM Simple Example", image); // show it to the user
-
-	cv::waitKey(0);
-
-
-}
-
-void svm_test()
-{
-	
-
-	
-	// Data for visual representation
-    int width = 512, height = 512;
-	cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
-
-    // Set up training data
-    int labels[4] = {1, -1, 1, 1};
-	cv::Mat labelsMat(4, 1, CV_32SC1, labels);
-
-	float trainingData[4][9] = { {100,100,100,100,0,100,100,100,100},{ 100,100,100,100,100,100,100,100,100 },{ 100,100,100, 0,0,0,100,100,100 }, { 0,100,0, 100,0,100 , 0,100,0 }};
-	cv::Mat trainingDataMat(4, 9, CV_32FC1, trainingData);
-
-	int labels2[4] = { -1,1,0,2 };
-	cv::Mat labelsMat2(4, 1, CV_32SC1, labels2);
-	float trainingData2[4][2] = { { 20,40 },{ 60,80 },{ 80,60 },{ 30,20 } };
-	cv::Mat trainingDataMat2(4, 2, CV_32FC1, trainingData2);
-	cv::Ptr<cv::ml::TrainData> tData2 = cv::ml::TrainData::create(trainingDataMat2, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat2);
-
-
-	cv::Mat responses;
-
-	cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainingDataMat, cv::ml::SampleTypes::ROW_SAMPLE, labelsMat);
-	//Ptr<TrainData> trData = TrainData::create(trainingDataMat, SampleTypes::ROW_SAMPLE, responses,noArray(),noArray(),noArray());
-	
-	cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
-	svm->setType(cv::ml::SVM::C_SVC);
-	//svm->setKernel(SVM::LINEAR);
-	svm->setGamma(1); svm->setKernel(cv::ml::SVM::CHI2);
-	svm->setTermCriteria(cvTermCriteria(CV_TERMCRIT_ITER, 100, 1e-6));
-	
-	svm->train(tData2, 0);
-
-	cv::Mat sampleMat2 = (cv::Mat_<float>(1, 2) << 100, 100);
-
-	cv::Mat sampleMat = (cv::Mat_<float>(1, 9) << 100, 100, 100, 100, 50, 100, 100, 100, 100);
-	cv::Mat predictResponse;
-	svm->predict(sampleMat2, predictResponse, 0);
-
-	cout << sampleMat << endl;
-
-	cout << "Predict 1: " << predictResponse.at<float>(0, 0) << endl;
-	
-	sampleMat2 = (cv::Mat_<float>(1, 2) << 10, 10);
-	sampleMat = (cv::Mat_<float>(1, 9) << 0, 0, 0, 0, 100, 0, 0, 0, 0);
-	svm->predict(sampleMat2, predictResponse, 0);
-	cout << "Predict 2: " << predictResponse.at<float>(0, 0) << endl;
-
-
-
-	
-	cv::Vec3b green(0,255,0), blue (255,0,0);
-    // Show the decision regions given by the SVM
-    for (int i = 0; i < image.rows; ++i)
-        for (int j = 0; j < image.cols; ++j)
-        {
-			cv::Mat sampleMat = (cv::Mat_<float>(1,2) << i,j );
-			cv::Mat predictResponse;
-			svm->predict(sampleMat, predictResponse, 0);
-			
-			
-            if (predictResponse.at<float>(0, 0) == 1)
-                image.at<cv::Vec3b>(i,j)  = green;
-            else if (predictResponse.at<float>(0, 0) == -1)
-                 image.at<cv::Vec3b>(i,j)  = blue;
-				 
-        }
-
-	
-	// Show the training data
-    int thickness = -1;
-    int lineType = 8;
-    //circle( image, Point(501,  10), 5, Scalar(  0,   0,   0), thickness, lineType);
-    //circle( image, Point(255,  10), 5, Scalar(255, 255, 255), thickness, lineType);
-    //circle( image, Point(501, 255), 5, Scalar(255, 255, 255), thickness, lineType);
-    //circle( image, Point( 10, 501), 5, Scalar(255, 255, 255), thickness, lineType);
-
-    // Show support vectors
-    thickness = 2;
-    lineType  = 8;
-	cv::Mat support = svm->getUncompressedSupportVectors();
-	int c = support.rows;
-
-	
-
-    for (int i = 0; i < c; ++i)
-    {
-		float v[2];
-        v[0] = support.at<float>(i,0);
-		v[1] = support.at<float>(i, 1);
-        circle( image, cv::Point( (int) v[0], (int) v[1]),   6, cv::Scalar(128, 128, 128), thickness, lineType);
-    }
-
-    //imwrite("result.png", image);        // save the image
-
-	cv::imshow("SVM Simple Example", image); // show it to the user
-	
-	
-	cv::waitKey(0);
-	
-}
-
-void fast_test()
-{
-	cv::Mat inp = cv::imread("hmtest3.jpg", CV_LOAD_IMAGE_UNCHANGED);
-	cv::Mat inpRez = resizeImg(inp,70,70);
-	cv::Mat img;
-
-	cv::namedWindow("0", 0);
-	cv::imshow("0", inp);
-
-	cv::cvtColor(inpRez, img, cv::COLOR_BGR2GRAY);
-
-	//cout << inp.type() << endl;
-
-	cv::namedWindow("-1", 0);
-	cv::imshow("-1", inpRez);
-
-	cv::waitKey(0);
-
-	// Initiate FAST object with default values
-	vector<cv::KeyPoint> keypoints;
-	cout << keypoints.size() << endl;
-
-	cv::FAST(img, keypoints, 10);// , false, FastFeatureDetector::TYPE_5_8);
-
-
-	cout << keypoints.size() << endl;
-
-	// find and draw the keypoints
-	cv::Mat img2;
-	cv::drawKeypoints(inpRez, keypoints, img2, cv::Scalar(150, 0, 0));
-
-	cv::namedWindow("1", 1);
-	cv::imshow("1", img2);
-
-	vector<cv::KeyPoint> keypoints2;
-	cv::FAST(img, keypoints, 60, false);
-
-	cv::Mat img3;
-	cv::drawKeypoints(inpRez, keypoints2, img3, cv::Scalar(255, 0, 0, 255));
-
-	cv::namedWindow("2", 1);
-	cv::imshow("2", img3);
-
-}
-
-void sift_test()
-{
-	/*
-	ImageObj<uchar> image;
-	image.read_pgm("img1.pgm");
-
-	bool bExtractDescriptor = true;
-	list<SiftKeypoint> kpt_list;
-	// Perform SIFT computation on CPU.
-	sift_cpu(image, kpt_list, bExtractDescriptor);
-	// Generate output image
-	//draw_keypoints_to_ppm_file("output.ppm", image, kpt_list);
-	// Generate keypoints list
-	//export_kpt_list_to_file("output.key", kpt_list, bExtractDescriptor);
-
-	*/
 }

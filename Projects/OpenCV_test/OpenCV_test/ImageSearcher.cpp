@@ -4,7 +4,7 @@ HANDLE reciSlot;
 HANDLE sendSlot;
 unordered_map<string, string> hashTable;
 
-std::wstring s2ws(const std::string& s)
+std::wstring string2wstring(const std::string& s)
 {
 	int len;
 	int slength = (int)s.length() + 1;
@@ -137,63 +137,6 @@ BOOL WINAPI MakeSendSlot(LPTSTR lpszSlotName, HANDLE *hFile)
 	}
 
 	return TRUE;
-}
-
-bool t()
-{
-	/*
-	vector<ClothArticle*> allArticles = readCatalogeFromFile("readyFile.xx");
-
-
-	MakeSlot(SlotName);
-
-	while (TRUE)
-	{
-		string res = ReadSlot(SlotName);
-		if (res == "FALSE")
-			return false;
-		else if (res != "TRUE" && res != "Message one for mailslot." && res != "Message two for mailslot." && res != "Message three for mailslot.")
-		{
-			ClothArticle* queryArticle = new ClothArticle("Input", res, "Rod", "Top", -1);
-			vector<string> results = findClosestNeighbours(allArticles, queryArticle, 10, "None");
-			cout << results[0] << endl;
-		}
-		else
-		{
-			cout << "Hej" << endl;
-		}
-		Sleep(1000);
-	}
-	*/
-
-	/*
-	HANDLE hFile;
-
-	hFile = CreateFile(SlotName,
-		GENERIC_WRITE,
-		FILE_SHARE_READ,
-		(LPSECURITY_ATTRIBUTES)NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		(HANDLE)NULL);
-
-	if (hFile == INVALID_HANDLE_VALUE)
-	{
-		printf("CreateFile failed with %d.\n", GetLastError());
-		return FALSE;
-	}
-
-	WriteSlot(hFile, TEXT("Message one for mailslot."));
-	WriteSlot(hFile, TEXT("Message two for mailslot."));
-
-	Sleep(5000);
-
-	WriteSlot(hFile, TEXT("Message three for mailslot."));
-
-	CloseHandle(hFile);
-	*/
-
-	return true;
 }
 
 BOOL isOnline(LPTSTR lpszSlotName, HANDLE *hSlot)
@@ -426,7 +369,7 @@ void frontend(string catalogePath)
 					}
 				} while (!valid);
 
-				std::wstring stemp = s2ws(query);
+				std::wstring stemp = string2wstring(query);
 				LPCWSTR lquery = stemp.c_str();
 				writeSlot(sendSlot, lquery);
 				CloseHandle(sendSlot);
@@ -974,7 +917,7 @@ string createQuery(LPTSTR path, LPTSTR numRes, int featNum, int filtNum)
 
 bool sendQuery(vector<string> &results, string query)
 {
-	std::wstring stemp = s2ws(query);
+	std::wstring stemp = string2wstring(query);
 	LPCWSTR lquery = stemp.c_str();
 	writeSlot(sendSlot, lquery);
 	CloseHandle(sendSlot);
@@ -1183,7 +1126,7 @@ int guiFrontend(string catalogePath)
 	hwnd = CreateWindowEx(
 		0,
 		g_szClassName,
-		TEXT("The title of my window"),
+		TEXT("The Search For Fashion"),
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -1336,7 +1279,7 @@ int backend(string catalogePath, bool embeded, bool loadModel)
 
 			if (MakeSendSlot(BACK_TO_FRONT_SLOT, &sendSlot))
 			{
-				std::wstring stemp = s2ws(answer);
+				std::wstring stemp = string2wstring(answer);
 				LPCWSTR ans = stemp.c_str();
 				writeSlot(sendSlot, ans);
 				CloseHandle(sendSlot);
@@ -1381,7 +1324,7 @@ vector<string> seekUsingImage(string catalogePath, string queryPath, int n)
 	return findClosestNeighbours(allArticles, queryArticle, n, "All", "None");
 }
 
-
+/*
 vector<string> oldseekUsingImage(string catalogePath, string queryPath, int n)
 {
 	vector<ClothArticle*> *allArticles = readCatalogeFromFile(catalogePath, false);
@@ -1390,7 +1333,7 @@ vector<string> oldseekUsingImage(string catalogePath, string queryPath, int n)
 
 	return oldfindClosestNeighbours(allArticles, queryArticle, n, "None");
 }
-
+*/
 /**Finds the n closest neigboours to given input.
 *
 * \param allArticles All the articles that is going to be searched.
@@ -1530,7 +1473,7 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 	return topResults;
 }
 
-
+/*
 vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string testType)
 {
 	struct GreatTuple
@@ -1638,7 +1581,7 @@ vector<string> oldfindClosestNeighbours(vector<ClothArticle*> *allArticles, Clot
 
 	return topResults;
 }
-
+*/
 
 cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, float negScale)
 {
@@ -1753,7 +1696,7 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	return fVec;
 }
 
-
+/*
 cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
 {
 	cv::Mat fVec;
@@ -1838,6 +1781,7 @@ cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
 	return fVec;
 }
 
+*/
 /**Creates a Support Vector Machine model.
 *
 * \param input Data that is going to be used for training the model.
@@ -1926,6 +1870,12 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 		cv::Mat multVec;
 		cv::Mat featVec = createFeatureVector(input->at(i));
 		cv::multiply(featVec, filtVec, multVec);
+		if (i < 1)
+		{
+			cout << multVec << endl;
+			cout << cv::sum(multVec) << endl;
+		}
+		
 
 		for (int k = 0; k < multVec.cols; k++)
 		{
@@ -1938,7 +1888,7 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 	return tData;
 }
 
-
+/*
 cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, string classifierGroup)
 {
 	vector<int> labels; //color{ + clothType + sleeveType
@@ -1984,14 +1934,14 @@ cv::Ptr<cv::ml::TrainData> oldcreateTrainingData(vector<ClothArticle*> *input, s
 
 	return tData;
 }
-
+*/
 
 void clusterCataloge(vector<ClothArticle*> *cataloge, string filtType)
 {
 
 	int clusterCount = MIN(Config::get().MAXIMUM_CLUSTER_COUNT,cataloge->size());
 
-	cv::Mat points(cataloge->size(), 4 * EDGE_FEATURE_SIZE + 6 * 32, CV_32F);
+	cv::Mat points(cataloge->size(), 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS + 6 * 32, CV_32F);
 	cv::Mat labels;
 
 	for (int i = 0; i < cataloge->size(); i++)
