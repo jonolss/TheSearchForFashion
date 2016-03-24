@@ -1065,6 +1065,49 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 	return topResults;
 }
 
+
+cv::Mat createFilterVector(cv::Size vecSize, vector<string> filtType, float posScale, float negScale)
+{
+	cv::Mat filtVec(vecSize, CV_32FC1, cv::Scalar(0.0f));
+
+	while (!filtType.empty())
+	{
+		string type = filtType.back();
+		filtType.pop_back();
+
+		int max, min;
+
+
+		if (type == "ClothingType")
+		{
+			min = 0;
+			max = EDGE_FEATURE_SIZE;
+		}
+		else if (type == "Silhouette")
+		{
+			min = EDGE_FEATURE_SIZE;
+			max = 2 * EDGE_FEATURE_SIZE;
+		}
+		else if (type == "Pattern")
+		{
+			min = 2 * EDGE_FEATURE_SIZE;
+			max = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
+		}
+		else if (type == "Color")
+		{
+			min = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
+			max = filtVec.cols;
+		}
+
+		for (int i = 0; i < filtVec.cols; i++)
+		{
+			if (min <= i  && i < max)
+				filtVec.at<float>(0, i) = posScale;
+		}
+	}
+	return filtVec;
+}
+
 /**Creates a vector mask that can be used to filter a feature vector.
 *
 * \param vecSize The size of the mask.
@@ -1089,7 +1132,7 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 		{
 			for (int i = 0; i < filtVec.cols; i++)
 			{
-				filtVec.at<float>(0, i) = i < 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
+				filtVec.at<float>(0, i) = i < EDGE_FEATURE_SIZE ? posScale : negScale;
 			}
 		}
 		else if (filtType == "Pattern")
@@ -1103,7 +1146,7 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 		{
 			for (int i = 0; i < filtVec.cols; i++)
 			{
-				filtVec.at<float>(0, i) = i < 2 * EDGE_FEATURE_SIZE && i >= EDGE_FEATURE_SIZE ? posScale : negScale;
+				filtVec.at<float>(0, i) = i >= EDGE_FEATURE_SIZE && i < 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
 			}
 		}
 		else
@@ -1123,7 +1166,7 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 			if (i >= 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS)
 				filtVec.at<float>(0, i) = 1. / (float)(6 * 3);
 			else if (i < 2 * EDGE_FEATURE_SIZE)
-				filtVec.at<float>(0, i) = 1. / (float)(2 * 3);
+				filtVec.at<float>(0, i) = 1. / (float)(1);
 			else
 				filtVec.at<float>(0, i) = 1. / (float)(Config::get().NUM_OF_GRAD_ANGS * 3);
 		}
@@ -1153,7 +1196,6 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	}
 
 	tmp = inpFeats->getEdgeVect(1);
-	//tmp = inpFeats->getBinVect(0);
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
@@ -1161,6 +1203,7 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	}
 
 	tmp = inpFeats->getEdgeVect(2);
+
 	for (int j = 0; j < tmp.rows; j++)
 	{
 		fVec.at<float>(0, j + 2 * EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
@@ -1186,92 +1229,6 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 	return fVec;
 }
 
-/*
-cv::Mat oldcreateFeatureVector(ClothArticle* input, string fVecType)
-{
-	cv::Mat fVec;
-	ImageFeatures *inpFeats = input->getImgFeats();
-
-	if (fVecType == "Color")
-	{
-		fVec = cv::Mat(1, 32 * 6, CV_32F);
-		for (int j = 0; j < 6; j++)
-		{
-			cv::Mat tmp;
-			if (j<3)
-			{
-				tmp = inpFeats->getRGBHist(j);
-			}
-			else
-			{
-				tmp = inpFeats->getHSVHist(j - 3);
-			}
-
-			for (int k = 0; k < 32; k++)
-			{
-				fVec.at<float>(0, tmp.rows * j + k) = (float)tmp.at<float>(k, 0);
-			}
-		}
-	}
-	else if (fVecType == "ClothingType")
-	{
-		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE, CV_32FC1);
-
-		cv::Mat tmp = inpFeats->getEdgeVect(0);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
-		}
-
-		tmp = inpFeats->getEdgeVect(1);
-
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
-		}
-	}
-	else if (fVecType == "All" )
-	{
-		fVec = cv::Mat(1, 2 * EDGE_FEATURE_SIZE + 32 * 6, CV_32FC1);
-
-		cv::Mat tmp = inpFeats->getEdgeVect(0);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j) = tmp.at<float>(j, 0);
-		}
-
-		tmp = inpFeats->getEdgeVect(1);
-
-		for (int j = 0; j < tmp.rows; j++)
-		{
-			fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
-		}
-
-		for (int j = 0; j < 6; j++)
-		{
-			if (j<3)
-			{
-				tmp = inpFeats->getRGBHist(j);
-			}
-			else
-			{
-				tmp = inpFeats->getHSVHist(j - 3);
-			}
-
-			for (int k = 0; k < 32; k++)
-			{
-				fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE) = (float)tmp.at<float>(k, 0);
-			}
-		}
-
-	}
-	return fVec;
-}
-
-*/
 /**Creates a Support Vector Machine model.
 *
 * \param input Data that is going to be used for training the model.
