@@ -1,11 +1,6 @@
-
-
-
-
 #include <iostream>
 #include <fstream>
 
-//#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/core.hpp>
@@ -15,17 +10,9 @@
 #include "ImageUtilities.h"
 #include "ImageSearcher.h"
 
-
-
-#include "ezsift.h"
-#include "image.h"
-#include "img_io.h"
-
 #define CONFIG_PATH "TSFS.conf"
 
 
-//using namespace cv;
-//using namespace cv::ml;
 using namespace std;
 
 void svmANDrfTest(string filename, string testType);
@@ -34,9 +21,11 @@ void testModelWithImage(string trainingFilename, string testFilename, string tes
 
 int main(int argc, char* argv[])
 {
-	Config::get().readConfigFile(CONFIG_PATH);
-	Config::get().printConfig();
 
+	Config::get().readConfigFile(CONFIG_PATH);
+#ifdef _DEBUG
+	Config::get().printConfig();
+#endif
 	if (argc == 3)
 	{
 		cout << argv[2] << endl;
@@ -52,27 +41,24 @@ int main(int argc, char* argv[])
 	}
 	else if (string(argv[1]) == "--window")
 	{
-		guiFrontend("readyFile2.xx");
+		cout << guiFrontend("readyFile2.xx");
 	}
 	else if (string(argv[1]) == "-b")
 	{
 		if (argc == 2)
 		{
-			backend("readyFile2.xx", false, false);
+			backend("readyFile2.xx", false);
 		}
 		else
 		{
-			backend("readyFile2.xx", true, false);
+			backend("readyFile2.xx", true);
 		}
 	}
 	else if (string(argv[1]) == "-h")
 	{
-		cout << "Use -f to start frontend process." << endl
-			<< "Use -b to start backend process." << endl;
-	}
-	else if (string(argv[1]) == "--test")
-	{
-		testModelWithImage("readyFile2.xx", "indiskatest0.jpg", "ClothingType", false);  //<-- Bör funka på dirren
+		cout << "  Use --window to start a gui-frontend process." << endl
+			<< "  Use -f to start a frontend process." << endl
+			<< "  Use -b to start a backend process.";
 	}
 	else if (string(argv[1]) == "--sobel")
 	{
@@ -478,10 +464,6 @@ int main(int argc, char* argv[])
 	{
 		cout << "Invalid arguments, use -h for help.";
 	}
-
-	if (string(argv[1]) == "--SaRtest")
-		svmANDrfTest("readyFile2.xx", "ClothingType");
-
 
 	return 0;
 }

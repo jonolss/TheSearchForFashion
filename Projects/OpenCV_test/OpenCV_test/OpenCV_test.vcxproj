@@ -154,12 +154,14 @@
     <ClCompile Include="ImageSearcher.cpp" />
     <ClCompile Include="ImageUtilities.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="my_win_utills.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothArticle.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="ImageSearcher.h" />
     <ClInclude Include="ImageUtilities.h" />
+    <ClInclude Include="my_win_utills.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

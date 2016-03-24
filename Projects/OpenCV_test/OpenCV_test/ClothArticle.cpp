@@ -1,3 +1,18 @@
+/**
+* @file
+* @author Jonathan Olsson <jonolss92@gmail.com>
+* @version 1.0
+*
+* @section LICENSE
+*
+* Here I will have information about License.
+*
+* @section DESCRIPTION
+*
+* All the things that is needed to represent a clothing article.
+*
+*/
+
 #include "ClothArticle.h"
 
 /** Private declarations.
@@ -15,7 +30,7 @@ ImageFeatures::ImageFeatures()
 }
 
 /**Constructor for making ImageFeatures.
-* \param iamge The image who's features is going to be extracted.
+* \param image The image who's features is going to be extracted.
 */
 ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 {
@@ -220,6 +235,8 @@ ClothArticle::ClothArticle(string id, string path, string color, string clType, 
 	this->sleeveType = checkSleeveType(sleeveType);
 	this->path       = path;
 	this->clusterId  = 0;
+	this->clusterColor = 0;
+	this->clusterClType = 0;
 	cv::Mat tmp = cv::imread(path, cv::IMREAD_UNCHANGED);
 	bool png = path.find(".png") != string::npos;
 	if (png)
@@ -248,6 +265,8 @@ ClothArticle::ClothArticle(string id, string path, art_color color, art_clType c
 	this->path       = path;
 	this->imgFeats   = imgFeats;
 	this->clusterId  = 0;
+	this->clusterColor = 0;
+	this->clusterClType = 0;
 }
 
 /**Standard desturctor.
@@ -261,6 +280,18 @@ ClothArticle::~ClothArticle() { delete imgFeats; }
 * \return Article's cluster id.
 */
 int ClothArticle::getClusterId() { return clusterId; }
+
+/**Returns the cluster color of the article.
+*
+* \return Article's cluster color.
+*/
+int ClothArticle::getClusterColor() { return clusterColor; }
+
+/**Returns the cluster ClType of the article.
+*
+* \return Article's cluster ClType.
+*/
+int ClothArticle::getClusterClType() { return clusterClType; }
 
 /**Returns the id of the article.
 *
@@ -312,6 +343,16 @@ art_sleeveType ClothArticle::getSleeveType() { return sleeveType; }
 * \param id The id of the cluster being set.
 */
 void ClothArticle::setClusterId(int id) { this->clusterId = id; }
+/**Sets the article's cluster color.
+*
+* \param id The color of the cluster being set.
+*/
+void ClothArticle::setClusterColor(int color) { this->clusterColor = color; }
+/**Sets the article's cluster ClType.
+*
+* \param id The ClType of the cluster being set.
+*/
+void ClothArticle::setClusterClType(int clType) { this->clusterClType = clType; }
 /**Sets the article's type of color.
 *
 * \param color Type of color that is being set.
@@ -781,6 +822,11 @@ ClothArticle *inputParser(string input, bool partial)
 	return new ClothArticle(id, path, color, clType, sleeveType);
 }
 
+/**Stores a cataloge of ClothArticle elements to a file.
+*
+* \param input A cataloge with ClothArticle elements that is being stored.
+* \param path The path of the output file.
+*/
 void saveCataloge(vector<ClothArticle*> *input, string path)
 {
 	ofstream outFile(path, ios::out | ios::binary | ios::ate);
@@ -794,6 +840,12 @@ void saveCataloge(vector<ClothArticle*> *input, string path)
 		cout << "Couldn't open file." << endl;
 	}
 }
+
+/**Stores a cataloge of ClothArticle elements to an output stream.
+*
+* \param input A cataloge with ClothArticle elements that is being stored.
+* \param path An output stream.
+*/
 void saveCataloge(vector<ClothArticle*> *input, ofstream *outFile)
 {
 	char *data = (char*)calloc(1, sizeof(int));
@@ -807,6 +859,11 @@ void saveCataloge(vector<ClothArticle*> *input, ofstream *outFile)
 	}
 }
 
+/**Reads a cataloge of ClothArticle elements.
+*
+* \param path Path to a file where the cataloge is stored.
+* \return Adress to the loaded cataloge.
+*/
 vector<ClothArticle*> *loadCataloge(string path)
 {
 	ifstream inFile(path, ios::in | ios::binary);
@@ -823,6 +880,11 @@ vector<ClothArticle*> *loadCataloge(string path)
 	}
 }
 
+/**Reads a cataloge of ClothArticle elements.
+*
+* \param inFile Input stream where the cataloge is stored.
+* \return Adress to the loaded cataloge.
+*/
 vector<ClothArticle*> *loadCataloge(ifstream *inFile)
 {
 	char *data = (char*)calloc(1, sizeof(int));
@@ -838,6 +900,11 @@ vector<ClothArticle*> *loadCataloge(ifstream *inFile)
 	return ret;
 }
 
+/**Stores a ClothArticle element.
+*
+* \param input The ClothArticle element that is being stored.
+* \param path Path to the file where the element should be stored.
+*/
 void saveClArticle(ClothArticle *input, string path)
 {
 	ofstream outFile(path, ios::out | ios::binary | ios::ate);
@@ -852,6 +919,11 @@ void saveClArticle(ClothArticle *input, string path)
 	}
 }
 
+/**Stores a ClothArticle element.
+*
+* \param input The ClothArticle element that is being stored.
+* \param outFile Output stream where the element should be stored.
+*/
 void saveClArticle(ClothArticle *input, ofstream *outFile)
 {
 	string id = input->getId();
@@ -890,6 +962,11 @@ void saveClArticle(ClothArticle *input, ofstream *outFile)
 }
 
 
+/**Reads a ClothArticle element from a file.
+*
+* \param path Path to the file where the element is being stored.
+* \return Adress to the read ClothArticle element.
+*/
 ClothArticle *loadClArticle(string path)
 {
 	ifstream inFile(path, ios::in | ios::binary);
@@ -907,6 +984,11 @@ ClothArticle *loadClArticle(string path)
 	}
 }
 
+/**Reads a ClothArticle element from a file.
+*
+* \param inFile Input stream where the element is being stored.
+* \return Adress to the read ClothArticle element.
+*/
 ClothArticle *loadClArticle(ifstream *inFile)
 {
 	string id;
@@ -960,7 +1042,7 @@ ClothArticle *loadClArticle(ifstream *inFile)
 	return new ClothArticle(id, path, color, clType, sleeveType, imgFeats);
 }
 
-/** Saves the ImageFeatures to an open file.
+/**Stores the ImageFeatures to an open file.
 *
 * \param input The ImageFeatures that is going to be saved.
 * \param outFile An open outstream to a file.

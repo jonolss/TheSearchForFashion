@@ -1,3 +1,18 @@
+/**
+* @file
+* @author Jonathan Olsson <jonolss92@gmail.com>
+* @version 1.0
+*
+* @section LICENSE
+*
+* Here I will have information about License.
+*
+* @section DESCRIPTION
+*
+* Some utillity functions that is helping with images.
+*
+*/
+
 #include "ImageUtilities.h"
 
 /**Downsamples an image and put the result in a one dimensional matrix.

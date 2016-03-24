@@ -1,3 +1,18 @@
+/**
+* @file
+* @author Jonathan Olsson <jonolss92@gmail.com>
+* @version 1.0
+*
+* @section LICENSE
+*
+* Here I will have information about License.
+*
+* @section DESCRIPTION
+*
+* Reads a config file and shares the values around the project.
+*
+*/
+
 #include "Config.h"
 
 

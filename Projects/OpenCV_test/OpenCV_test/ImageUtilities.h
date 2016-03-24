@@ -26,7 +26,6 @@ cv::Mat preformGaussianBlur(cv::Mat src);
 cv::Mat preformCanny(cv::Mat src, double lowThresh, double highThresh);
 cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size);
 cv::Mat skeletonizeMorph(cv::Mat *binaryImg);
-cv::Mat skeletonizeZhangSuen(cv::Mat binaryImg);
 
 void createGradiantHistogram(cv::Mat &src, cv::Mat &dst, int num);
 void rotateAndGradiant(cv::Mat &src, cv::Mat &dstX, cv::Mat &dstY, double ang);
