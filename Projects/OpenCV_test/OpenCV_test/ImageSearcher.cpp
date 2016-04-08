@@ -27,6 +27,8 @@ LPCWSTR g_szClassName = TEXT("myWindowClass");
 * \return Return true if path is valid, false otherwise.
 */
 inline bool validPath(const string& path) {
+	if (path == Config::get().TEST_FOLDER)
+		return false;
 	struct stat buffer;
 	return (stat(path.c_str(), &buffer) == 0);
 }
@@ -450,7 +452,9 @@ bool validQuery(string query)
 			return false;
 		else if (count == 4 && line == "")
 			return false;
-		else if (count > 4)
+		else if (count == 5 && line == "")
+			return false;
+		else if (count > 5)
 			return false;
 
 		count++;
@@ -469,7 +473,7 @@ bool validQuery(string query)
 * \param filtNum The type of filter being used in the query.
 * \return A string of the query that can be directly send to the backend.
 */
-inline string createQuery(LPTSTR path, LPTSTR numRes, int featNum, int filtNum)
+inline string createQuery(LPTSTR path, LPTSTR numRes, int featNum[4], double featVal[4], int filtNum)
 {
 	string out = "imgSearch\n";
 
@@ -490,21 +494,24 @@ inline string createQuery(LPTSTR path, LPTSTR numRes, int featNum, int filtNum)
 	tmp[i] = '\0';
 	out += string(tmp) + "\n";
 
-	switch (featNum)
-	{
-	case featAll:
-		out += "All\n";
-		break;
-	case featColor:
-		out += "Color\n";
-		break;
-	case featClType:
-		out += "clType\n";
-		break;
-	case featPattern:
-		out += "Pattern\n";
-		break;
-	}
+	
+	if(featNum[0])
+		out += "ClothingType,";
+	if (featNum[1])
+		out += "Silhouette,";
+	if (featNum[2])
+		out += "Pattern,";
+	if (featNum[3])
+		out += "Color,";
+	if (featNum[4])
+		out += "Template,";
+	out += "\n";
+
+	out += to_string(featVal[0]) + ",";
+	out += to_string(featVal[1]) + ",";
+	out += to_string(featVal[2]) + ",";
+	out += to_string(featVal[3]) + ",";
+	out += to_string(featVal[4]) + "\n";
 
 	switch (filtNum)
 	{
@@ -582,8 +589,9 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 	HWND tmp;
 	LPTSTR path = (LPTSTR)new char[32];
 	LPTSTR numRes = (LPTSTR)new char[32];
-	int featNum = 0;
-	int filtNum = 0;
+	int featNum[] = { 0,0,0,0,0 };
+	int filtNum = filtNone;
+	double featVal[] = { 0.,0.,0.,0.,0. };
 	string query;
 
 	switch (msg)
@@ -598,6 +606,7 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
 				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Couldn't send request, backend is offline."));
 			}
 			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
@@ -609,15 +618,26 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 				GetWindowText(tmp, numRes, 32);
 
 				tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Feature"));
-				featNum = checkRadioGroup(tmp, featAll, featPattern);
+				checkFeatGroup(featNum, tmp, featClType);
 
-				tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Filter"));
-				filtNum = checkRadioGroup(tmp, filtNone, filtAll);
+				tmp = FindWindowEx(hwnd, NULL, _T("static"), _T("Feat Multiplier"));
+				checkFeatValues(featVal, tmp);
 
+				//tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Filter"));
+				//filtNum = checkRadioGroup(tmp, filtNone, filtAll);
 
-				query = createQuery(path, numRes, featNum, filtNum);
+				cout << featVal[0] << endl;
+				cout << featVal[1] << endl;
+				cout << featVal[2] << endl;
+				cout << featVal[3] << endl;
+				cout << featVal[4] << endl;
+
+				query = createQuery(path, numRes, featNum, featVal, filtNum);
+
+				cout << query << endl;
 
 				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
+				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 				if (validQuery(query))
@@ -633,6 +653,10 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 					string inputPath = sTmp.substr(0, sTmp.find('\n'));
 					cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
 					cv::Mat tmpImg3 = resizeImg(tmpImg, 300, 300);
+
+					cv::Mat tmpImg3x;
+					fixInternalPadding(tmpImg3, tmpImg3x);
+
 					cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
 
 					cv::cvtColor(tmpImg2, tmpImg2, CV_BGR2GRAY);
@@ -650,25 +674,38 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 					cv::destroyAllWindows();
 
+//#define SHOW_EDGE
+#ifdef SHOW_EDGE
 					cv::namedWindow("Query EDGE", 1);
 					cv::imshow("Query EDGE", edge);
 
 					cv::namedWindow("Query EDGE2", 1);
 					cv::imshow("Query EDGE2", edge2);
-
+#endif
 					cv::namedWindow("Query", 1);
+
+#ifdef _PADDING
+					cv::imshow("Query", tmpImg3x);
+#else
 					cv::imshow("Query", tmpImg3);
+#endif
 					for (int i = 0; i < results.size(); i++)
 					{
 						cout << results[i] << " : " << hashTable[results[i]] << endl;
 						tmpImg = cv::imread(hashTable[results[i]], cv::IMREAD_UNCHANGED);
 						cout << hashTable[results[i]] << endl;
 						if (hashTable[results[i]].find(".png") != string::npos)
+						{
 							filterAlphaArtifacts(&tmpImg);
+							cv::cvtColor(tmpImg, tmpImg, CV_BGRA2BGR);
+						}
 						tmpImg2 = resizeImg(tmpImg, 300, 300);
 
+						cv::Mat tmpImg2x;
+						fixInternalPadding(tmpImg2, tmpImg2x);
+
 						cv::Mat tmpImg3;
-						cv::cvtColor(tmpImg2, tmpImg3, CV_BGR2GRAY);
+						cv::cvtColor(tmpImg2x, tmpImg3, CV_BGR2GRAY);
 						cv::threshold(tmpImg3, tmpImg3, 248, 255, CV_THRESH_BINARY_INV);
 						cv::Mat tmpImg4;
 						onlyBackground(tmpImg3, tmpImg4);
@@ -677,7 +714,12 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 						tmpImg4 = preformCanny(tmpImg4, 80, 140);
 
 						cv::namedWindow("Result # " + to_string(i + 1), 1);
+#ifdef _PADDING
+						cv::imshow("Result # " + to_string(i + 1), tmpImg2x);
+#else
 						cv::imshow("Result # " + to_string(i + 1), tmpImg2);
+#endif
+
 					}
 					cv::waitKey(0);
 					cv::destroyAllWindows();
@@ -692,6 +734,7 @@ inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			break;
 		case onlineButton:
 			tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
+			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
 			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
@@ -765,7 +808,7 @@ int guiFrontend(string catalogePath)
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		550,
-		350,
+		400,
 		NULL,
 		NULL,
 		NULL,
@@ -820,6 +863,7 @@ int backend(string catalogePath, bool embeded)
 	else
 	{
 		allArticles = readCatalogeFromFile(catalogePath, false);
+#ifdef _FILTERS
 		clusterCataloge(allArticles, "Silhouette");
 		clusterCataloge(allArticles, "ClustColor");
 		clusterCataloge(allArticles, "ClustClType");
@@ -830,6 +874,7 @@ int backend(string catalogePath, bool embeded)
 		clustClTypeModel = makeRTModel(allArticles, "ClustClType");
 		colorModel->save(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
 		clTypeModel->save(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
+#endif
 	}
 
 	if (!MakeReciSlot(FRONT_TO_BACK_SLOT, &reciSlot))
@@ -877,18 +922,18 @@ int backend(string catalogePath, bool embeded)
 		}
 		else if (reqType == "imgSearch")
 		{
-			string path     = reqArgs[1];
-			int    n        = stoi(reqArgs[2]);
+			string path = reqArgs[1];
+			int    n = stoi(reqArgs[2]);
 			string fVecType = reqArgs[3];
-			string filters  = reqArgs[4];
-
+			string fVecVals = reqArgs[4];  // <--- fixa in dom här till featFilter
+			string filters = reqArgs[5];
 
 			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
 
+#ifdef _FILTERS
 			cv::Mat multVec;
 			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
 			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
-			cout << filtVec << endl;
 			cv::multiply(featVec, filtVec, multVec);
 			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
 
@@ -911,9 +956,36 @@ int backend(string catalogePath, bool embeded)
 			filtVec = createFilterVector(featVec.size(), "ClustClType", 1.0f, 0.0f);
 			cv::multiply(featVec, filtVec, multVec);
 			queryArticle->setClusterClType((int)clustClTypeModel->predict(multVec));
+#endif
+			vector<string> fVecTypes;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecType.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecTypes.push_back(string(tmpPoint));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
 
+			vector<double> fVecValsD;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecVals.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecValsD.push_back(stod(string(tmpPoint)));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
+			
 
-			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
+			//vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
+			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
 
 			string answer = "";
 			for (int i = 0; i < closeNeigh.size(); i++)
@@ -976,17 +1048,31 @@ vector<string> seekUsingImage(string catalogePath, string queryPath, int n)
 */
 vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string fVecType, string filterType)
 {
-	struct GreatTuple
+	vector<string> tmp;
+	tmp.push_back(fVecType);
+	vector<double> tmp2;
+	tmp2.push_back(1);
+	tmp2.push_back(1);
+	tmp2.push_back(1);
+	tmp2.push_back(1);
+	tmp2.push_back(1);
+	return findClosestNeighbours(allArticles, query, n, tmp, tmp2, filterType);
+}
+
+vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, vector<string> fVecType, vector<double> fVecVal, string filterType)
+{
+	struct GreatPair
 	{
-		bool operator()(const tuple<float, string>& lhs, const tuple<float, string>& rhs) const
+		bool operator()(const pair<double, string>& lhs, const pair<double, string>& rhs) const
 		{
 			return get<0>(lhs) > get<0>(rhs);
+			//return get<0>(lhs) < get<0>(rhs);
 		}
 	};
 
-	priority_queue< tuple<float, string>, vector<tuple<float, string>>, GreatTuple > priQueue;
+	priority_queue< pair<double, string>, vector<pair<double, string>>, GreatPair > priQueue;
 
-	cv::Mat queryFeat = createFeatureVector(query);
+	cv::Mat queryFeat = createFeatureVector(query, fVecVal);
 	cv::Mat filtVec = createFilterVector(queryFeat.size(), fVecType, 1.0f, 0.0f);
 
 	for (int i = 0; i < allArticles->size(); i++)
@@ -1004,13 +1090,40 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 			|| (filterType == "All" && curr->getClType() == query->getClType() && curr->getColor() == query->getColor());
 		if (statement)
 		{
-			cv::Mat currFeat = createFeatureVector(curr); // , fVecType);
+			cv::Mat currFeat = createFeatureVector(curr, fVecVal); // , fVecType);
 			
-			cout << curr->getClusterId() << " : " << curr->getClusterColor() << " : " << curr->getClusterClType() << endl;
-			float dist = calcEuclDist(queryFeat, currFeat, filtVec);
+			//cout << curr->getClusterId() << " : " << curr->getClusterColor() << " : " << curr->getClusterClType() << endl;
+			
+			// <--- funkar inte här under pga att vect är 1-dimensionell, behöver vara 2-dim
+			cv::Mat queryEdge(Config::get().EDGE_IMAGE_SIZE_XY, Config::get().EDGE_IMAGE_SIZE_XY, CV_8U);
+			cv::Mat currEdge(Config::get().EDGE_IMAGE_SIZE_XY, Config::get().EDGE_IMAGE_SIZE_XY, CV_8U);
 
-			tuple<float, string> currPriEntry;
-			currPriEntry = make_tuple(dist, curr->getId());
+			cv::Mat queryEdgeVec = query->getImgFeats()->getEdgeVect()[1];
+			cv::Mat currEdgeVec = curr->getImgFeats()->getEdgeVect()[1];
+			for (int y = 0; y < Config::get().EDGE_IMAGE_SIZE_XY; y++)
+			{
+				for (int x = 0; x < Config::get().EDGE_IMAGE_SIZE_XY; x++)
+				{
+					queryEdge.at<uchar>(cv::Point(x, y)) = queryEdgeVec.at<uchar>(y * Config::get().EDGE_IMAGE_SIZE_XY + x);
+					currEdge.at<uchar>(cv::Point(x, y)) = currEdgeVec.at<uchar>(y * Config::get().EDGE_IMAGE_SIZE_XY + x);
+				}
+
+			}
+
+
+			pair<double, double> tmpltValue = make_pair(0, 0);
+			for (int i = 0; i < fVecType.size(); i++)
+			{
+				if(fVecType[i] == "Template")
+					tmpltValue = performTemplateMatching(currEdge, queryEdge);
+			}
+			
+			double dist = calcEuclDist(queryFeat, currFeat, filtVec);
+			double prioValue = dist + (1 / (abs(tmpltValue.first) + 1)) * fVecVal[4];
+			
+			pair<float, string> currPriEntry;
+			//currPriEntry = make_pair(dist, curr->getId());
+			currPriEntry = make_pair(prioValue, curr->getId());
 
 			priQueue.push(currPriEntry);
 		}
@@ -1077,32 +1190,34 @@ cv::Mat createFilterVector(cv::Size vecSize, vector<string> filtType, float posS
 
 		int max, min;
 
+		if (type != "Template")
+		{
+			if (type == "ClothingType")
+			{
+				min = 0;
+				max = EDGE_FEATURE_SIZE;
+			}
+			else if (type == "Silhouette")
+			{
+				min = EDGE_FEATURE_SIZE;
+				max = 2 * EDGE_FEATURE_SIZE;
+			}
+			else if (type == "Pattern")
+			{
+				min = 2 * EDGE_FEATURE_SIZE;
+				max = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
+			}
+			else if (type == "Color")
+			{
+				min = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
+				max = filtVec.cols;
+			}
 
-		if (type == "ClothingType")
-		{
-			min = 0;
-			max = EDGE_FEATURE_SIZE;
-		}
-		else if (type == "Silhouette")
-		{
-			min = EDGE_FEATURE_SIZE;
-			max = 2 * EDGE_FEATURE_SIZE;
-		}
-		else if (type == "Pattern")
-		{
-			min = 2 * EDGE_FEATURE_SIZE;
-			max = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
-		}
-		else if (type == "Color")
-		{
-			min = 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS;
-			max = filtVec.cols;
-		}
-
-		for (int i = 0; i < filtVec.cols; i++)
-		{
-			if (min <= i  && i < max)
-				filtVec.at<float>(0, i) = posScale;
+			for (int i = 0; i < filtVec.cols; i++)
+			{
+				if (min <= i  && i < max)
+					filtVec.at<float>(0, i) = posScale;
+			}
 		}
 	}
 	return filtVec;
@@ -1118,61 +1233,20 @@ cv::Mat createFilterVector(cv::Size vecSize, vector<string> filtType, float posS
 */
 cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, float negScale)
 {
-	cv::Mat filtVec(vecSize, CV_32FC1, cv::Scalar(1.0f));
+	vector<string> tmp;
 	if (filtType != "All")
 	{
-		if (filtType == "Color" || filtType == "ClustColor")
-		{
-			for (int i = 0; i < filtVec.cols; i++)
-			{
-				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS ? posScale : negScale;
-			}
-		}
-		else if (filtType == "ClothingType" || filtType == "ClustClType") 
-		{
-			for (int i = 0; i < filtVec.cols; i++)
-			{
-				filtVec.at<float>(0, i) = i < EDGE_FEATURE_SIZE ? posScale : negScale;
-			}
-		}
-		else if (filtType == "Pattern")
-		{
-			for (int i = 0; i < filtVec.cols; i++)
-			{
-				filtVec.at<float>(0, i) = i >= 2 * EDGE_FEATURE_SIZE && i < 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS ? posScale : negScale;
-			}
-		}
-		else if (filtType == "Silhouette")
-		{
-			for (int i = 0; i < filtVec.cols; i++)
-			{
-				filtVec.at<float>(0, i) = i >= EDGE_FEATURE_SIZE && i < 2 * EDGE_FEATURE_SIZE ? posScale : negScale;
-			}
-		}
-		else
-		{
-			cout << "Wrong" << endl;
-		}
+		tmp.push_back("ClothingType");
+		tmp.push_back("Silhouette");
+		tmp.push_back("Pattern");
+		tmp.push_back("Color");
 	}
 	else
 	{
-		for (int i = 0; i < filtVec.cols; i++)
-		{
-			//cout << "COLOR: " << (float)(32 * 6) / (float)filtVec.cols << endl;
-			//cout << "CLTYPE: " << (float)(2 * EDGE_FEATURE_SIZE) / (float)filtVec.cols << endl;
-			//cout << "PATTERN: " << (float)Config::get().NUM_OF_GRAD_ANGS / (float)filtVec.cols << endl;
-			//cout << "TOTAL: " << (float)(32 * 6) / (float)filtVec.cols + (float)(2 * EDGE_FEATURE_SIZE) / (float)filtVec.cols + (float)Config::get().NUM_OF_GRAD_ANGS / (float)filtVec.cols << endl;
-
-			if (i >= 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS)
-				filtVec.at<float>(0, i) = 1. / (float)(6 * 3);
-			else if (i < 2 * EDGE_FEATURE_SIZE)
-				filtVec.at<float>(0, i) = 1. / (float)(1);
-			else
-				filtVec.at<float>(0, i) = 1. / (float)(Config::get().NUM_OF_GRAD_ANGS * 3);
-		}
+		tmp.push_back(filtType);
 	}
-
-	return filtVec;
+	
+	return createFilterVector(vecSize, tmp, posScale, negScale);
 }
 
 /**Creates a feature vector.
@@ -1181,7 +1255,18 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 * \param testType Type of feature vector, e.g. "Color", "ClothingType" or "Color+ClothingType".
 * \return Feature vector of the given article.
 */
-cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
+cv::Mat createFeatureVector(ClothArticle* input)
+{
+	vector<double> fVecVal;
+	fVecVal.push_back(1);
+	fVecVal.push_back(1);
+	fVecVal.push_back(1);
+	fVecVal.push_back(1);
+	return createFeatureVector(input, fVecVal);
+}
+
+
+cv::Mat createFeatureVector(ClothArticle* input, vector<double> fVecVal) //, string fVecType)
 {
 	cv::Mat fVec;
 	ImageFeatures *inpFeats = input->getImgFeats();
@@ -1192,21 +1277,21 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
-		fVec.at<float>(0, j) = tmp.at<float>(j, 0);
+		fVec.at<float>(0, j) = tmp.at<float>(j, 0) * fVecVal[0];
 	}
 
 	tmp = inpFeats->getEdgeVect(1);
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
-		fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+		fVec.at<float>(0, j + EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0) * fVecVal[1];
 	}
 
 	tmp = inpFeats->getEdgeVect(2);
 
 	for (int j = 0; j < tmp.rows; j++)
 	{
-		fVec.at<float>(0, j + 2 * EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0);
+		fVec.at<float>(0, j + 2 * EDGE_FEATURE_SIZE) = tmp.at<float>(j, 0) * fVecVal[2];
 	}
 
 	for (int j = 0; j < 6; j++)
@@ -1222,7 +1307,7 @@ cv::Mat createFeatureVector(ClothArticle* input) //, string fVecType)
 
 		for (int k = 0; k < 32; k++)
 		{
-			fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS) = (float)tmp.at<float>(k, 0);
+			fVec.at<float>(0, tmp.rows * j + k + 2 * EDGE_FEATURE_SIZE + Config::get().NUM_OF_GRAD_ANGS) = (float)tmp.at<float>(k, 0) * fVecVal[3];
 		}
 	}
 
@@ -1323,8 +1408,9 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 		cv::multiply(featVec, filtVec, multVec);
 		if (i < 1)
 		{
-			cout << multVec << endl;
-			cout << cv::sum(multVec) << endl;
+			;
+			//cout << multVec << endl;
+			//cout << cv::sum(multVec) << endl;
 		}
 		
 

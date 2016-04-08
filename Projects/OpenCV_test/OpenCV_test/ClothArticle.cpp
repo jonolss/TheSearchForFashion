@@ -88,7 +88,7 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 	cv::Mat edgesBlur = preformGaussianBlur(edges);
 
 
-	edgeVect.push_back(createlocalEdgeImageHist(edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
+	edgeVect.push_back(createLocalEdgeImageHist(edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
 
 	imgBlur = preformGaussianBlur(binary);
 	edges = preformCanny(imgBlur, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
@@ -102,8 +102,8 @@ ImageFeatures::ImageFeatures(cv::Mat image, bool png)
 	edges = preformCanny(out, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
 	edgesBlur = preformGaussianBlur(edges);
 
-	edgeVect.push_back(createlocalEdgeImageHist(/*binary*/edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
-	binVect.push_back(createlocalEdgeImageHist(out, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
+	edgeVect.push_back(createLocalEdgeImageHist(/*binary*/edgesBlur, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
+	binVect.push_back(createLocalEdgeImageHist(out, Config::get().IMAGE_SIZE_XY / Config::get().EDGE_IMAGE_SIZE_XY));
 	////////////////
 
 	this->maxHorizontal = maxHorizontalEdges(edges, 5, 30);
@@ -243,8 +243,16 @@ ClothArticle::ClothArticle(string id, string path, string color, string clType, 
 		filterAlphaArtifacts(&tmp);
 	cv::Mat tmp2 = resizeImg(tmp, Config::get().IMAGE_SIZE_XY, Config::get().IMAGE_SIZE_XY);
 
-	this->imgFeats = new ImageFeatures(tmp2,png);
 
+#ifdef _PADDING
+	cv::Mat tmp3;
+	cv::cvtColor(tmp2, tmp3, CV_BGRA2BGR);
+	cv::Mat tmp4;
+	fixInternalPadding(tmp3, tmp4);
+	this->imgFeats = new ImageFeatures(tmp4, false);//png);
+#else
+	this->imgFeats = new ImageFeatures(tmp2, png);
+#endif
 }
 
 /**Constructor for making a ClothArticle.

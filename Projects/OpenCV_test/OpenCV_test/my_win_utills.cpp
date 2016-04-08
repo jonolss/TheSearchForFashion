@@ -209,7 +209,7 @@ HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
 		WS_VISIBLE | WS_CHILD | BS_GROUPBOX,             //control style 
 		x,												    //position: left
 		y,													  //position: top
-		320,												  //width
+		410,												  //width
 		40,													  //height
 		hwnd,											       //parent window handle							  
 		(HMENU)2,													//control's ID
@@ -218,37 +218,9 @@ HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
 
 	HWND but0 = CreateWindowEx(0,				  //extended styles
 		_T("button"),											 //control 'class' name
-		_T("All"),											 //control caption
-		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
-		10,												    //position: left
-		20,													  //position: top
-		75,												  //width
-		20,													  //height
-		outGroup,											       //parent window handle							  
-		(HMENU)featAll,													//control's ID
-		cs->hInstance,									      //application instance
-		0);
-
-	SendMessage(but0, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
-
-	HWND but1 = CreateWindowEx(0,				  //extended styles
-		_T("button"),											 //control 'class' name
-		_T("Color"),											 //control caption
-		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
-		85,												    //position: left
-		20,													  //position: top
-		75,												  //width
-		20,													  //height
-		outGroup,											       //parent window handle							  
-		(HMENU)featColor,													//control's ID
-		cs->hInstance,									      //application instance
-		0);
-
-	HWND but2 = CreateWindowEx(0,				  //extended styles
-		_T("button"),											 //control 'class' name
 		_T("ClType"),											 //control caption
-		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
-		160,												    //position: left
+		WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,             //control style 
+		10,												    //position: left
 		20,													  //position: top
 		75,												  //width
 		20,													  //height
@@ -257,11 +229,28 @@ HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
 		cs->hInstance,									      //application instance
 		0);
 
-	HWND but3 = CreateWindowEx(0,				  //extended styles
+	SendMessage(but0, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
+
+	HWND but1 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Silhouette"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,             //control style 
+		85,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featSill,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(but1, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
+
+	HWND but2 = CreateWindowEx(0,				  //extended styles
 		_T("button"),											 //control 'class' name
 		_T("Pattern"),											 //control caption
-		WS_VISIBLE | WS_CHILD | BS_AUTORADIOBUTTON,             //control style 
-		235,												    //position: left
+		WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,             //control style 
+		160,												    //position: left
 		20,													  //position: top
 		75,												  //width
 		20,													  //height
@@ -269,7 +258,208 @@ HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
 		(HMENU)featPattern,													//control's ID
 		cs->hInstance,									      //application instance
 		0);
+
+	SendMessage(but2, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
+
+	HWND but3 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Color"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,             //control style 
+		235,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featColor,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(but3, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
+
+	HWND but4 = CreateWindowEx(0,				  //extended styles
+		_T("button"),											 //control 'class' name
+		_T("Template"),											 //control caption
+		WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX,             //control style 
+		310,												    //position: left
+		20,													  //position: top
+		75,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featTemplate,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(but4, BM_SETCHECK, (WPARAM)BST_CHECKED, NULL);
+
 	return outGroup;
+}
+
+void checkFeatGroup(int dst[5], const HWND hwnd, int offset)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		dst[i] = IsDlgButtonChecked(hwnd, i + offset);
+	}
+}
+
+
+HWND makeFeatValues(const HWND hwnd, CREATESTRUCT *cs, int x, int y)
+{
+	HWND outGroup = CreateWindowEx(WS_EX_WINDOWEDGE,				  //extended styles
+		WC_STATIC,											 //control 'class' name
+		_T("Feat Multiplier"),											 //control caption
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,             //control style 
+		x,												    //position: left
+		y,													  //position: top
+		410,												  //width
+		45,													  //height
+		hwnd,											       //parent window handle							  
+		(HMENU)2,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	HWND val0 = CreateWindowEx(0,				  //extended styles
+		WC_COMBOBOX,											 //control 'class' name
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,           //control style 
+		10,												    //position: left
+		20,													  //position: top
+		45,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featClType,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(val0, WM_SETTEXT, (WPARAM)NULL, (LPARAM)(string2wstring(to_string(Config::get().FEAT_MULT_CLTYPE).substr(0, 4)).c_str()));
+
+
+	HWND val1 = CreateWindowEx(0,				  //extended styles
+		WC_COMBOBOX,											 //control 'class' name
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,            //control style 
+		85,												    //position: left
+		20,													  //position: top
+		45,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featSill,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(val1, WM_SETTEXT, (WPARAM)NULL, (LPARAM)(string2wstring(to_string(Config::get().FEAT_MULT_SILLHOUETTE).substr(0, 4)).c_str()));
+
+
+	HWND val2 = CreateWindowEx(0,				  //extended styles
+		WC_COMBOBOX,											 //control 'class' name
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,          //control style 
+		160,												    //position: left
+		20,													  //position: top
+		45,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featPattern,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(val2, WM_SETTEXT, (WPARAM)NULL, (LPARAM)(string2wstring(to_string(Config::get().FEAT_MULT_PATTERN).substr(0, 4)).c_str()));
+
+
+	HWND val3 = CreateWindowEx(0,				  //extended styles
+		WC_COMBOBOX,											 //control 'class' name
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,         //control style 
+		235,												    //position: left
+		20,													  //position: top
+		45,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featColor,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(val3, WM_SETTEXT, (WPARAM)NULL, (LPARAM)(string2wstring(to_string(Config::get().FEAT_MULT_COLOR).substr(0, 4)).c_str()));
+
+
+	HWND val4 = CreateWindowEx(0,				  //extended styles
+		WC_COMBOBOX,											 //control 'class' name
+		TEXT(""),
+		WS_CHILD | WS_OVERLAPPED | WS_VISIBLE | WS_TABSTOP,         //control style 
+		310,												    //position: left
+		20,													  //position: top
+		45,												  //width
+		20,													  //height
+		outGroup,											       //parent window handle							  
+		(HMENU)featTemplate,													//control's ID
+		cs->hInstance,									      //application instance
+		0);
+
+	SendMessage(val4, WM_SETTEXT, (WPARAM)NULL, (LPARAM)(string2wstring(to_string(Config::get().FEAT_MULT_TEMPLATE).substr(0, 4)).c_str())); //<-- den här får inte rätt siffra
+
+
+
+	return outGroup;
+}
+
+void checkFeatValues(double dst[5], const HWND hwnd)
+{
+	LPTSTR data = (LPTSTR)new char[32];;
+	HWND hwndTmp = FindWindowEx(hwnd, NULL, WC_COMBOBOX, NULL);
+	GetWindowText(hwndTmp, data, 32);
+
+	char tmp[32] = { '\0' };
+	int i;
+	for (i = 0; data[i] != '\0'; i++)
+	{
+		tmp[i] = data[i];
+	}
+	tmp[i] = '\0';
+	dst[0] = atof(tmp);
+
+
+	hwndTmp = FindWindowEx(hwnd, hwndTmp, WC_COMBOBOX, NULL);
+	GetWindowText(hwndTmp, data, 32);
+
+	for (i = 0; data[i] != '\0'; i++)
+	{
+		tmp[i] = data[i];
+	}
+	tmp[i] = '\0';
+	dst[1] = atof(tmp);
+
+
+	hwndTmp = FindWindowEx(hwnd, hwndTmp, WC_COMBOBOX, NULL);
+	GetWindowText(hwndTmp, data, 32);
+
+	for (i = 0; data[i] != '\0'; i++)
+	{
+		tmp[i] = data[i];
+	}
+	tmp[i] = '\0';
+	dst[2] = atof(tmp);
+
+
+	hwndTmp = FindWindowEx(hwnd, hwndTmp, WC_COMBOBOX, NULL);
+	GetWindowText(hwndTmp, data, 32);
+
+	for (i = 0; data[i] != '\0'; i++)
+	{
+		tmp[i] = data[i];
+	}
+	tmp[i] = '\0';
+	dst[3] = atof(tmp);
+
+
+	hwndTmp = FindWindowEx(hwnd, hwndTmp, WC_COMBOBOX, NULL);
+	GetWindowText(hwndTmp, data, 32);
+
+	for (i = 0; data[i] != '\0'; i++)
+	{
+		tmp[i] = data[i];
+	}
+	tmp[i] = '\0';
+	dst[4] = atof(tmp);
 }
 
 /**Creates a group of radio buttons for the selection of filters.
@@ -452,7 +642,7 @@ void OnCreate(const HWND hwnd, CREATESTRUCT *cs)
 		NULL);
 
 
-	TCHAR Planets[12][3] =
+	TCHAR elements[12][3] =
 	{
 		TEXT("1"), TEXT("2"), TEXT("3"), TEXT("4"),
 		TEXT("5"), TEXT("6"), TEXT("7"), TEXT("8"),
@@ -465,7 +655,7 @@ void OnCreate(const HWND hwnd, CREATESTRUCT *cs)
 	memset(&A, 0, sizeof(A));
 	for (k = 0; k < 12; k += 1)
 	{
-		wcscpy_s(A, sizeof(A) / sizeof(TCHAR), (TCHAR*)Planets[k]);
+		wcscpy_s(A, sizeof(A) / sizeof(TCHAR), (TCHAR*)elements[k]);
 
 		// Add string to combobox.
 		SendMessage(NumResText, (UINT)CB_ADDSTRING, (WPARAM)0, (LPARAM)A);
@@ -478,14 +668,16 @@ void OnCreate(const HWND hwnd, CREATESTRUCT *cs)
 
 	HWND featBox = makeFeatButtons(hwnd, cs, 10, 125);
 
-	HWND filtBox = makeFiltButtons(hwnd, cs, 10, 175);
+	HWND featValBox = makeFeatValues(hwnd, cs, 10, 175);
+
+	//HWND filtBox = makeFiltButtons(hwnd, cs, 10, 225);
 
 	HWND hWnd3 = CreateWindowEx(0,          //extended styles
 		_T("button"),						//control 'class' name
 		_T("Search"),						//control caption
 		WS_VISIBLE | WS_CHILD,				//control style 
 		10,							        //position: left
-		220,							    //position: top
+		270,							    //position: top
 		50,									//width
 		30,									//height
 		hwnd,								//parent window handle							 
@@ -498,7 +690,7 @@ void OnCreate(const HWND hwnd, CREATESTRUCT *cs)
 		_T(""),						    //control caption
 		WS_VISIBLE | WS_CHILD,				//control style 
 		70,							        //position: left
-		225,							    //position: top
+		275,							    //position: top
 		300,								//width
 		20,									//height
 		hwnd,								//parent window handle							 
@@ -511,7 +703,7 @@ void OnCreate(const HWND hwnd, CREATESTRUCT *cs)
 		_T("Online"),						//control caption
 		WS_VISIBLE | WS_CHILD,				//control style 
 		10,							        //position: left
-		260,							    //position: top
+		310,							    //position: top
 		50,									//width
 		30,									//height
 		hwnd,								//parent window handle							 

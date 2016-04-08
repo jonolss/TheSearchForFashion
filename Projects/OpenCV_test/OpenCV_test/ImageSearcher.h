@@ -25,10 +25,13 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <unordered_map>
 
 using namespace std;
-
+vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, vector<string> fVecType, vector<double> fVecVal, string filterType);
+//vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, vector<string> fVecType, string filterType);
 vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string fVecType, string filterType);
 vector<string> seekUsingImage(string catalogePath, string queryPath, int n);
 cv::Mat createFeatureVector(ClothArticle* input);
+cv::Mat createFeatureVector(ClothArticle* input, vector<double> fVecVal);
+cv::Mat createFilterVector(cv::Size vecSize, vector<string> filtType, float posScale, float negScale);
 cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, float negScale);
 cv::Ptr<cv::ml::SVM> makeSVMModel(vector<ClothArticle*> *input, string testType);
 cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> *input, string testType);

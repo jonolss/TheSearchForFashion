@@ -13,6 +13,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include <tchar.h>
 
 #include <iostream>
+#include <vector>
 #include <string>
 
 using namespace std;
@@ -32,9 +33,11 @@ BOOL isOnline(LPTSTR lpszSlotName, HANDLE *hSlot);
 enum
 {
 	featAll = 100,
-	featColor,
 	featClType,
+	featSill,
 	featPattern,
+	featColor,
+	featTemplate,
 	filtNone,
 	filtColor,
 	filtClType,
@@ -50,6 +53,9 @@ enum
 	res9, res10, res11
 };
 
+void checkFeatValues(double dst[5], const HWND hwnd);
+void checkFeatGroup(int dst[5], const HWND hwnd, int offset);
+HWND makeFeatValues(const HWND hwnd, CREATESTRUCT *cs, int x, int y);
 HWND makeFeatButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y);
 HWND makeFiltButtons(const HWND hwnd, CREATESTRUCT *cs, int x, int y);
 void OnCreate(const HWND hwnd, CREATESTRUCT *cs);

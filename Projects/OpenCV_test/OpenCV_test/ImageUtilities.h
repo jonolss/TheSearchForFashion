@@ -17,14 +17,19 @@
 
 using namespace std;
 
+tuple<int, int, int, int> getMinMaxXY(cv::Mat bin);
+pair<double, double> performTemplateMatching(cv::Mat &bin, cv::Mat &tmpl);
+void fixInternalPadding(cv::Mat &src, cv::Mat &dst);
+
 cv::Mat resizeImg(cv::Mat input, int sizeX = 300, int sizeY = 300);
+cv::Mat resizeBinImg(cv::Mat input, int sizeX = 300, int sizeY = 300);
 cv::Mat getChannel(cv::Mat src, int channel);
 cv::Mat normalizeHist(cv::Mat hist);
 cv::Mat get8bitHist(cv::Mat img1D, int numLevels = 32);
 cv::Mat getHsvHist(cv::Mat img1D, int type, int numLevels = 32);
 cv::Mat preformGaussianBlur(cv::Mat src);
 cv::Mat preformCanny(cv::Mat src, double lowThresh, double highThresh);
-cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size);
+cv::Mat createLocalEdgeImageHist(cv::Mat edges, int size);
 cv::Mat skeletonizeMorph(cv::Mat *binaryImg);
 
 void createGradiantHistogram(cv::Mat &src, cv::Mat &dst, int num);

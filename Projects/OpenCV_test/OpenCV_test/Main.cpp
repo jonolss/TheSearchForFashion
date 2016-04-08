@@ -12,7 +12,6 @@
 
 #define CONFIG_PATH "TSFS.conf"
 
-
 using namespace std;
 
 void svmANDrfTest(string filename, string testType);
@@ -34,6 +33,77 @@ int main(int argc, char* argv[])
 	if (argc == 1)
 	{
 		cout << "Too few arguments, use -h for help.";
+	}
+	else if (string(argv[1]) == "--padding")
+	{
+		cv::Mat src0 = cv::imread("testfiles/shirt0.jpg", cv::IMREAD_UNCHANGED);
+
+		cv::Mat image0 = resizeImg(src0, 300, 300);
+
+		cv::Mat imgGray0;
+		cv::cvtColor(image0, imgGray0, cv::COLOR_BGR2GRAY);
+
+		cv::Mat binary0;
+		cv::threshold(imgGray0, binary0, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
+		binary0 = binary0 * 255;
+
+		cv::Mat paddedImage;
+		
+		fixInternalPadding(image0, paddedImage);
+		
+		cv::imshow("paddedImage", paddedImage);
+
+		cv::waitKey(0);
+	}
+	else if (string(argv[1]) == "--matching")
+	{
+		
+		//double performTemplate
+
+		cv::Mat src0 = cv::imread("testfiles/shirt0.jpg",cv::IMREAD_UNCHANGED);
+		cv::Mat src1 = cv::imread("testfiles/dress2.jpg", cv::IMREAD_UNCHANGED);
+
+		cv::Mat image0 = resizeImg(src0,300,300);
+		cv::Mat image1 = resizeImg(src1,300,300);
+
+		cv::Mat imgGray0;
+		cv::cvtColor(image0, imgGray0, cv::COLOR_BGR2GRAY);
+		cv::Mat imgGray1;
+		cv::cvtColor(image1, imgGray1, cv::COLOR_BGR2GRAY);
+
+		cv::Mat binary0;
+		cv::threshold(imgGray0, binary0, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
+		binary0 = binary0 * 255;
+		cv::Mat binary1;
+		cv::threshold(imgGray1, binary1, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
+		binary1 = binary1 * 255;
+
+		cv::Mat imgBlur0 = preformGaussianBlur(binary0);
+		cv::Mat edges0 = preformCanny(imgBlur0, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
+		cv::Mat edgesBlur0 = preformGaussianBlur(edges0);
+		cv::Mat imgBlur1 = preformGaussianBlur(binary1);
+		cv::Mat edges1 = preformCanny(imgBlur1, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
+		cv::Mat edgesBlur1 = preformGaussianBlur(edges1);
+
+		cv::Mat out0;
+		onlyBackground(binary0, out0);
+		out0 *= 255;
+		cv::Mat out1;
+		onlyBackground(binary1, out1);
+		out1 *= 255;
+
+		out0 = preformGaussianBlur(out0);
+		edges0 = preformCanny(out0, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
+		out1 = preformGaussianBlur(out1);
+		edges1 = preformCanny(out1, Config::get().CANNY_THRESH_LOW, Config::get().CANNY_THRESH_HIGH);
+
+		cv::Mat kov0 = resizeImg(edges0, Config::get().EDGE_IMAGE_SIZE_XY, Config::get().EDGE_IMAGE_SIZE_XY);
+		cv::Mat kov1 = resizeImg(edges1, Config::get().EDGE_IMAGE_SIZE_XY, Config::get().EDGE_IMAGE_SIZE_XY);
+
+		pair<double, double> outMax = performTemplateMatching(kov0, kov1);
+
+		cout << "Max: " << outMax.first << endl;
+		cout << "Tot: " << outMax.second << endl;
 	}
 	else if (string(argv[1]) == "-f")
 	{

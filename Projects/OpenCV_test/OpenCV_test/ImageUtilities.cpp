@@ -21,7 +21,7 @@
 * \param size Number of pixels on one side used for the downsampling, e.g. size=10 uses 100 pixels.
 * \return The resulting matrix.
 */
-cv::Mat createlocalEdgeImageHist(cv::Mat edges, int size)
+cv::Mat createLocalEdgeImageHist(cv::Mat edges, int size)
 {
 	int nVerBoxs = edges.size().height / size;
 	int nHorBoxs = edges.size().width / size;
@@ -294,6 +294,57 @@ cv::Mat resizeImg(cv::Mat input, int sizeX, int sizeY)
 
 	return out;
 }
+
+
+cv::Mat resizeBinImg(cv::Mat input, int sizeX, int sizeY)
+{
+	int sides = sizeX;
+
+	cv::Size inSize = input.size();
+	float inRatio = (float)inSize.width / (float)inSize.height;
+	cv::Size newSize;
+
+	if (inRatio < 0.9)
+		newSize = cv::Size((int)((float)sides * inRatio), sides);
+	else if (inRatio > 1.1)
+		newSize = cv::Size(sides, (int)((float)sides * (1 / inRatio)));
+	else
+		newSize = cv::Size(sides, sides);
+
+	cv::Mat mid(newSize, CV_8U);
+
+	if (inSize.width > sides || inSize.height > sides)
+	{
+		cv::resize(input, mid, newSize, 0.0, 0.0, cv::INTER_AREA);
+	}
+	else if (inSize.width < sides || inSize.height < sides)
+	{
+		cv::resize(input, mid, newSize, 0.0, 0.0, cv::INTER_LINEAR);
+	}
+
+	if (mid.size() == cv::Size(sides, sides))
+	{
+		return mid;
+	}
+
+
+	cv::Mat out(cv::Size(sides, sides), CV_8U, cv::Scalar(0));
+	if (mid.size().width == sides)
+	{
+		int delta = (sides - mid.size().height) / 2;
+
+		mid.copyTo(out(cv::Rect(0, delta, mid.cols, mid.rows)));
+	}
+	else
+	{
+		int delta = (sides - mid.size().width) / 2;
+		mid.copyTo(out(cv::Rect(delta, 0, mid.cols, mid.rows)));
+	}
+
+	return out;
+}
+
+
 
 /**Saves an openCV matrix to an open file.
 * 
@@ -676,4 +727,89 @@ void rotateAndGradiant(cv::Mat &src, cv::Mat &dstX, cv::Mat &dstY, double ang)
 
 	cv::convertScaleAbs(grad_x1, dstX);
 	cv::convertScaleAbs(grad_y1, dstY);
+}
+
+/**Performs a template matching.
+*
+* \param bin A sillhoutte that is going to be checked by the template.
+* \param tmpl A sillhoutte that is going to be used as template.
+* \return Returns a pair with the maximum likeness value and the total likeness value.
+*/
+pair<double,double> performTemplateMatching(cv::Mat &bin, cv::Mat &tmpl)
+{
+	cv::Size ksize = cv::Size(5, 5);
+	double sigmaX = 4.0;
+	double sigmaY = 4.0;
+	
+	cv::Mat bin0, tmpl0;
+	GaussianBlur(bin, bin0, ksize, sigmaX, sigmaY);
+	GaussianBlur(tmpl, tmpl0, ksize, sigmaX, sigmaY);
+	
+	int rows = bin.rows;
+	int cols = bin.cols;
+	cv::Mat bigBin0(rows + 10, cols + 10, CV_8U, cv::Scalar(0));
+	bin0.copyTo(bigBin0(cv::Rect(5, 5, rows, cols)));
+
+	cv::Mat result;
+	cv::matchTemplate(bigBin0, tmpl0, result, cv::TM_CCORR_NORMED);
+
+	double min, max;
+	cv::minMaxLoc(result, &min, &max);
+	
+	return make_pair(max, sum(result)[0]);
+}
+
+
+tuple<int, int, int, int> getMinMaxXY(cv::Mat bin)
+{
+	int maxX = 0, minX = bin.cols - 1;
+	int maxY = 0, minY = bin.rows - 1;
+	for (int y = 0; y < bin.rows; y++)
+	{
+		for (int x = 0; x < bin.cols; x++)
+		{
+			if (bin.at<uchar>(y, x) != 0)
+			{
+				maxX = max(maxX, x);
+				maxY = max(maxY, y);
+				minX = min(minX, x);
+				minY = min(minY, y);
+			}
+		}
+	}
+	return make_tuple(maxX, minX, maxY, minY);
+}
+
+
+/**Makes it so that two opposite sides of an item is 5 pixels from the image border.
+*
+* \param src The image that is going to be transformed. The images sides must be equal.
+* \param dst The resulting transformed image.
+*/
+void fixInternalPadding(cv::Mat &src, cv::Mat &dst)
+{
+	int size = src.cols;
+
+	cv::Mat imgGray;
+	cv::cvtColor(src, imgGray, cv::COLOR_BGR2GRAY);
+
+	cv::Mat binary;
+	cv::threshold(imgGray, binary, 248, cv::THRESH_BINARY_INV, cv::THRESH_BINARY_INV);
+
+	tuple<int, int, int, int> maxminpoints = getMinMaxXY(binary);
+
+	int maxX = get<0>(maxminpoints);
+	int minX = get<1>(maxminpoints);
+	int maxY = get<2>(maxminpoints);
+	int minY = get<3>(maxminpoints);
+
+	int x_item = maxX - minX;
+	int y_item = maxY - minY;
+
+	cv::Mat croppedImage = src(cv::Rect(minX, minY, x_item, y_item));
+
+	cv::Mat resizedImage = resizeImg(croppedImage, size - 10, size - 10);
+
+	dst = cv::Mat(Config::get().IMAGE_SIZE_XY, Config::get().IMAGE_SIZE_XY, CV_8UC3, cv::Scalar(255, 255, 255));
+	resizedImage.copyTo(dst(cv::Rect(5, 5, size - 10, size - 10)));
 }

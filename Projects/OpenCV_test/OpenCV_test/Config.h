@@ -39,6 +39,12 @@ public:
 	double CANNY_THRESH_LOW;// = 80.0;
 	double CANNY_THRESH_HIGH;// = 140.0;
 
+	double FEAT_MULT_CLTYPE;
+	double FEAT_MULT_SILLHOUETTE;
+	double FEAT_MULT_PATTERN;
+	double FEAT_MULT_COLOR;
+	double FEAT_MULT_TEMPLATE;
+
 	void readConfigFile(string path);
 	void printConfig();
 

@@ -56,6 +56,21 @@ void Config::readConfigFile(string path)
 		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
 		CANNY_THRESH_HIGH = atof(line.c_str());
 
+		getline(inFile, line);
+		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
+		FEAT_MULT_CLTYPE = atof(line.c_str());
+		getline(inFile, line);
+		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
+		FEAT_MULT_SILLHOUETTE = atof(line.c_str());
+		getline(inFile, line);
+		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
+		FEAT_MULT_PATTERN = atof(line.c_str());
+		getline(inFile, line);
+		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
+		FEAT_MULT_COLOR = atof(line.c_str());
+		line = line.substr((line.find('=') + 1), line.length() - (line.find('=') + 1));
+		FEAT_MULT_TEMPLATE = atof(line.c_str());
+
 		inFile.close();
 	}
 	else
@@ -77,4 +92,8 @@ void Config::printConfig()
 	cout << "IMAGE_SIZE_XY " << IMAGE_SIZE_XY << endl;
 	cout << "CANNY_THRESH_LOW " << CANNY_THRESH_LOW << endl;
 	cout << "CANNY_THRESH_HIGH " << CANNY_THRESH_HIGH << endl;
+	cout << "FEAT_MULT_CLTYPE " << FEAT_MULT_CLTYPE << endl;
+	cout << "FEAT_MULT_SILLHOUETTE " << FEAT_MULT_SILLHOUETTE << endl;
+	cout << "FEAT_MULT_PATTERN " << FEAT_MULT_PATTERN << endl;
+	cout << "FEAT_MULT_COLOR " << FEAT_MULT_COLOR << endl;
 }
