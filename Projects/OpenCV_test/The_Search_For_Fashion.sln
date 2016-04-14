@@ -3,24 +3,62 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenCV_test", "OpenCV_test\OpenCV_test.vcxproj", "{5BC10AFE-1440-48FF-B6BF-E0F533492185}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "The_Search_For_Fashion", "OpenCV_test\OpenCV_test.vcxproj", "{5BC10AFE-1440-48FF-B6BF-E0F533492185}"
+EndProject
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "WebSite1/WebSite", "http://localhost:8080/WebSite", "{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}"
+	ProjectSection(WebsiteProperties) = preProject
+		UseIISExpress = "true"
+		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.5.2"
+		Debug.AspNetCompiler.VirtualPath = "/WebSite"
+		Debug.AspNetCompiler.PhysicalPath = "..\..\..\..\My Web Sites\WebSite1\WebSite\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\WebSite\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/WebSite"
+		Release.AspNetCompiler.PhysicalPath = "..\..\..\..\My Web Sites\WebSite1\WebSite\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\WebSite\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		SlnRelativePath = "..\..\..\..\My Web Sites\WebSite1\WebSite\"
+		DefaultWebSiteLanguage = "Visual C#"
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Debug|Any CPU.ActiveCfg = Debug|Win32
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Debug|x64.ActiveCfg = Debug|x64
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Debug|x64.Build.0 = Debug|x64
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Debug|x86.ActiveCfg = Debug|Win32
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Debug|x86.Build.0 = Debug|Win32
+		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Release|Any CPU.ActiveCfg = Release|Win32
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Release|x64.ActiveCfg = Release|x64
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Release|x64.Build.0 = Release|x64
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Release|x86.ActiveCfg = Release|Win32
 		{5BC10AFE-1440-48FF-B6BF-E0F533492185}.Release|x86.Build.0 = Release|Win32
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|x64.Build.0 = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Debug|x86.Build.0 = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|Any CPU.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|x64.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|x64.Build.0 = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|x86.ActiveCfg = Debug|Any CPU
+		{710B3E58-2F8B-4210-ACA4-C9EFCA28A689}.Release|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,13 @@
 #include <iostream>
 #include <fstream>
 
+#include <shobjidl.h>
+
+//#using <System.dll>
+//#using <System.Core.dll>
+
+
+
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/core.hpp>
@@ -14,12 +21,95 @@
 
 using namespace std;
 
+/*
+using namespace System;
+using namespace System::IO;
+using namespace System::IO::Pipes;
+using namespace System::Diagnostics;
+*/
+
 void svmANDrfTest(string filename, string testType);
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
 
 
 int main(int argc, char* argv[])
 {
+	
+#define CSTEST
+#ifdef CSTEST
+
+
+	HANDLE hRdMaster;
+	HANDLE hWrSlave;
+
+	bool bReturn;
+	//bReturn = CreatePipe(&hRdMaster,&hWrSlave,)
+
+
+
+
+
+
+
+	/*
+	Process^ pipeClient = gcnew Process();
+
+	pipeClient->StartInfo->FileName = "pipeClient.exe";
+
+	AnonymousPipeServerStream^ pipeServer =
+		gcnew AnonymousPipeServerStream(PipeDirection::Out,
+			HandleInheritability::Inheritable);
+	// Show that anonymous pipes do not support Message mode.
+	try
+	{
+		Console::WriteLine("[SERVER] Setting ReadMode to \"Message\".");
+		pipeServer->ReadMode = PipeTransmissionMode::Message;
+	}
+	catch (NotSupportedException^ e)
+	{
+		Console::WriteLine("[SERVER] Exception:\n    {0}", e->Message);
+	}
+
+	Console::WriteLine("[SERVER] Current TransmissionMode: {0}.",
+		pipeServer->TransmissionMode);
+
+	// Pass the client process a handle to the server.
+	pipeClient->StartInfo->Arguments =
+		pipeServer->GetClientHandleAsString();
+	pipeClient->StartInfo->UseShellExecute = false;
+	pipeClient->Start();
+
+	pipeServer->DisposeLocalCopyOfClientHandle();
+
+	try
+	{
+		// Read user input and send that to the client process.
+		StreamWriter^ sw = gcnew StreamWriter(pipeServer);
+
+		sw->AutoFlush = true;
+		// Send a 'sync message' and wait for client to receive it.
+		sw->WriteLine("SYNC");
+		pipeServer->WaitForPipeDrain();
+		// Send the console input to the client process.
+		Console::Write("[SERVER] Enter text: ");
+		sw->WriteLine(Console::ReadLine());
+		sw->Close();
+	}
+	// Catch the IOException that is raised if the pipe is broken
+	// or disconnected.
+	catch (IOException^ e)
+	{
+		Console::WriteLine("[SERVER] Error: {0}", e->Message);
+	}
+	pipeServer->Close();
+	pipeClient->WaitForExit();
+	pipeClient->Close();
+	Console::WriteLine("[SERVER] Client quit. Server terminating.");
+	*/
+
+	return 0;
+#endif
+
 
 	Config::get().readConfigFile(CONFIG_PATH);
 #ifdef _DEBUG
@@ -33,6 +123,55 @@ int main(int argc, char* argv[])
 	if (argc == 1)
 	{
 		cout << "Too few arguments, use -h for help.";
+	}
+	else if (string(argv[1]) == "--com")
+	{
+
+
+
+		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+		
+
+		if (SUCCEEDED(hr))
+		{
+			IFileOpenDialog *pFileOpen;
+
+			// Create the FileOpenDialog object.
+			hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+				IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+
+
+			if (SUCCEEDED(hr))
+			{
+				// Show the Open dialog box.
+				hr = pFileOpen->Show(NULL);
+
+				// Get the file name from the dialog box.
+				if (SUCCEEDED(hr))
+				{
+					IShellItem *pItem;
+					hr = pFileOpen->GetResult(&pItem);
+					if (SUCCEEDED(hr))
+					{
+						PWSTR pszFilePath;
+						hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+						// Display the file name to the user.
+						if (SUCCEEDED(hr))
+						{
+							MessageBox(NULL, pszFilePath, L"File Path", MB_OK);
+							CoTaskMemFree(pszFilePath);
+						}
+						pItem->Release();
+					}
+				}
+				pFileOpen->Release();
+			}
+			CoUninitialize();
+		}
+		return 0;
+
+
 	}
 	else if (string(argv[1]) == "--padding")
 	{

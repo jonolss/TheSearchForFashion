@@ -1,7 +1,13 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  Main.cpp
+Main.cpp(366): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+Main.cpp(372): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+Main.cpp(45): warning C4101: 'bReturn': unreferenced local variable
+Main.cpp(43): warning C4101: 'hWrSlave': unreferenced local variable
+Main.cpp(42): warning C4101: 'hRdMaster': unreferenced local variable
   Generating code
-  108 of 6469 functions ( 1.7%) were compiled, the rest were copied from previous compilation.
+  273 of 6469 functions ( 4.2%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    19 functions had inline decision re-evaluated but remain unchanged
+    38 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Release\The_Search_For_Fashion.exe

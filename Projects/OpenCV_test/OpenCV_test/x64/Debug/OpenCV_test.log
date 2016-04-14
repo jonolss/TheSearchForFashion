@@ -1,12 +1,5 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
-  ClothArticle.cpp
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(674): warning C4102: 'defualt': unreferenced label
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(855): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(939): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(940): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(1057): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(1066): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(1074): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(1082): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\clotharticle.cpp(677): warning C4715: 'to_string': not all control paths return a value
+  Main.cpp
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\main.cpp(287): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\jonathan.olsson\documents\git\thesearchforfashion\projects\opencv_test\opencv_test\main.cpp(293): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Debug\The_Search_For_Fashion.exe
