@@ -38,6 +38,7 @@ cv::Ptr<cv::ml::RTrees> makeRTModel(vector<ClothArticle*> *input, string testTyp
 cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, string classifierGroup);
 float calcEuclDist(cv::Mat fVec1, cv::Mat fVec2, cv::Mat scale);
 
+int webBackend(string catalogePath);
 int backend(string catalogePath, bool embeded);
 void frontend(string catalogePath);
 int guiFrontend(string catalogePath);

@@ -836,6 +836,218 @@ int guiFrontend(string catalogePath)
 	return Msg.wParam;
 }
 
+#define BUFFER_SIZE 1000
+int webBackend(string catalogePath)
+{
+
+	vector<ClothArticle*> *allArticles;
+	cv::Ptr<cv::ml::RTrees> colorModel;
+	cv::Ptr<cv::ml::RTrees> clTypeModel;
+	cv::Ptr<cv::ml::RTrees> clustSillModel;
+	cv::Ptr<cv::ml::RTrees> clustColorModel;
+	cv::Ptr<cv::ml::RTrees> clustClTypeModel;
+	if (validPath(catalogePath + Config::get().SAVE_EXTENTION) && validPath(catalogePath + Config::get().MODEL_COLOR_EXTENTION) && validPath(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION))
+	{
+		cout << Config::get().SAVE_EXTENTION << endl;
+		cout << Config::get().MODEL_COLOR_EXTENTION << endl;
+		cout << Config::get().MODEL_CLTYPE_EXTENTION << endl;
+		allArticles = loadCataloge(catalogePath + Config::get().SAVE_EXTENTION);
+		colorModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
+		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
+	}
+	else
+	{
+		allArticles = readCatalogeFromFile(catalogePath, false);
+#ifdef _FILTERS
+		clusterCataloge(allArticles, "Silhouette");
+		clusterCataloge(allArticles, "ClustColor");
+		clusterCataloge(allArticles, "ClustClType");
+		colorModel = makeRTModel(allArticles, "Color");
+		clTypeModel = makeRTModel(allArticles, "ClothingType");
+		clustSillModel = makeRTModel(allArticles, "Silhouette");
+		clustColorModel = makeRTModel(allArticles, "ClustColor");
+		clustClTypeModel = makeRTModel(allArticles, "ClustClType");
+		colorModel->save(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
+		clTypeModel->save(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
+#endif
+	}
+
+	char inBuf[BUFFER_SIZE];
+	char outBuf[BUFFER_SIZE];
+
+	LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
+	LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
+
+	DWORD cbWritten;
+	DWORD dwBytesToWrite = (DWORD)strlen(outBuf);
+
+	DWORD cbRead;
+	DWORD dwBytesToRead = BUFFER_SIZE;
+
+
+	HANDLE hPipe1 = CreateNamedPipe(lpszPipename1, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
+	HANDLE hPipe2 = CreateNamedPipe(lpszPipename2, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
+
+	HANDLE mutexSem = CreateSemaphore(NULL, 1, 1, _TEXT("Global\\sem_mutex"));
+	HANDLE syncSem = CreateSemaphore(NULL, 0, 1, _TEXT("Global\\sem_sync"));
+
+
+	int count = 0;
+
+	while (true)
+	{
+		cout << count++ << endl;
+		vector<string> reqArgs;
+		/*
+		while (reqArgs.empty())
+		{
+			string request = readSlot(reciSlot);
+
+			if (request == "FALSE")
+				return 1;
+
+
+			if (request != "")
+			{
+				char tmp;
+				int pos = request.find('\n');
+				while (pos != string::npos)
+				{
+					reqArgs.push_back(request.substr(0, pos));
+					request = request.substr(pos + 1, request.length() - pos + 1);
+					pos = request.find('\n');
+				}
+			}
+			else
+			{
+				Sleep(1);
+			}
+		}
+		*/
+		
+		
+		cout << "Waiting for client..." << endl;
+		ReleaseSemaphore(mutexSem, 1, NULL);
+		ConnectNamedPipe(hPipe1, NULL);
+		ReleaseSemaphore(syncSem, 1, NULL);
+		ConnectNamedPipe(hPipe2, NULL);
+		cout << "Pipes connected." << endl;
+
+		memset(inBuf, 0, BUFFER_SIZE);
+		ReadFile(hPipe1, inBuf, dwBytesToRead, &cbRead, NULL);
+
+		string request = string(inBuf);
+
+		char tmp;
+		int pos = request.find('\n');
+		while (pos != string::npos)
+		{
+			reqArgs.push_back(request.substr(0, pos));
+			request = request.substr(pos + 1, request.length() - pos + 1);
+			pos = request.find('\n');
+		}
+
+
+		string reqType = reqArgs[0];
+		if (reqType == "imgSearch")
+		{
+			string path = reqArgs[1];
+			int    n = stoi(reqArgs[2]);
+			string fVecType = reqArgs[3];
+			string fVecVals = reqArgs[4];  // <--- fixa in dom här till featFilter
+			string filters = reqArgs[5];
+
+			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
+
+#ifdef _FILTERS
+			cv::Mat multVec;
+			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
+			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClothingType", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClType(art_clType((int)clTypeModel->predict(multVec)));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "Silhouette", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterId((int)clustSillModel->predict(multVec));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClustColor", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterColor((int)clustColorModel->predict(multVec));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClustClType", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterClType((int)clustClTypeModel->predict(multVec));
+#endif
+			vector<string> fVecTypes;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecType.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecTypes.push_back(string(tmpPoint));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
+
+			vector<double> fVecValsD;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecVals.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecValsD.push_back(stod(string(tmpPoint)));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
+
+
+			//vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
+			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
+
+			string answer = "";
+			for (int i = 0; i < closeNeigh.size(); i++)
+			{
+				answer += closeNeigh[i] + '\n';
+			}
+
+			memset(outBuf, 0, BUFFER_SIZE);
+			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			dwBytesToWrite = (DWORD)strlen(outBuf);
+			WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
+		}
+		else
+		{
+			string answer = "Wrong input.\n";
+			memset(outBuf, 0, BUFFER_SIZE);
+			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			dwBytesToWrite = (DWORD)strlen(outBuf);
+			WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
+		}
+
+		DisconnectNamedPipe(hPipe1);
+		DisconnectNamedPipe(hPipe2);
+		cout << "Pipes disconnected." << endl;
+		
+	}
+
+	CloseHandle(hPipe1);
+	CloseHandle(hPipe2);
+	CloseHandle(syncSem);
+	CloseHandle(mutexSem);
+}
+
 /**Backend loop that handles requests from the front end of the program.
 *
 * \param catalogePath The path to cataloge of items.

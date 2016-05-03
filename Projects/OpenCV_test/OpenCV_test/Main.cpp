@@ -3,10 +3,6 @@
 
 #include <shobjidl.h>
 
-//#using <System.dll>
-//#using <System.Core.dll>
-
-
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
@@ -21,97 +17,251 @@
 
 using namespace std;
 
-/*
-using namespace System;
-using namespace System::IO;
-using namespace System::IO::Pipes;
-using namespace System::Diagnostics;
-*/
+
 
 void svmANDrfTest(string filename, string testType);
 void testModelWithImage(string trainingFilename, string testFilename, string testType, bool loadModel = false);
 
 
+
+DWORD WINAPI ThreadProc();
+HANDLE hPipe1, hPipe2;
+BOOL Finished;
+
+unsigned long __stdcall NET_RvThr(void * pParam) {
+	BOOL fSuccess;
+	char chBuf[100];
+	DWORD dwBytesToWrite = (DWORD)strlen(chBuf);
+	DWORD cbRead = 100;
+	int i;
+
+	while (1)
+	{
+		fSuccess = ReadFile(hPipe2, chBuf, dwBytesToWrite, &cbRead, NULL);
+		if (fSuccess)
+		{
+			printf("C++ App: Received %d Bytes : ", cbRead);
+			for (i = 0; i<cbRead; i++)
+				printf("%c", chBuf[i]);
+			printf("\n");
+		}
+		if (!fSuccess && GetLastError() != ERROR_MORE_DATA)
+		{
+			printf("Can't Read\n");
+			if (Finished)
+				break;
+		}
+	}
+	return 0;
+}
+
+
+#define BUFFER_SIZE 1000
+
+DWORD WINAPI test_thread( LPVOID lpParam)
+{
+	cout << "Hi, friend." << endl;
+
+	char buf[BUFFER_SIZE] = { 't','o','r','s','k','\0' };
+
+	LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
+	LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
+
+	DWORD cbWritten;
+	DWORD dwBytesToWrite = (DWORD)strlen(buf);
+
+
+	HANDLE sem = OpenSemaphore(SEMAPHORE_MODIFY_STATE, NULL, _TEXT("sem"));
+	if (sem == NULL)
+	{
+		printf("CreateSemaphore error: %d\n", GetLastError());
+		return -1;
+	}
+
+	
+
+	HANDLE hPipe1 = CreateFile(lpszPipename1, GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+	if ((hPipe1 == NULL || hPipe1 == INVALID_HANDLE_VALUE))
+	{
+		printf("Could not open the pipe  - (error %d)\n", GetLastError());
+
+	}
+	else
+	{
+		WriteFile(hPipe1, buf, dwBytesToWrite, &cbWritten, NULL);
+		**(int**)lpParam = 1;
+	}
+
+	ReleaseSemaphore(sem, 1, NULL);
+
+	return 0;
+}
+
 int main(int argc, char* argv[])
 {
-	
+	Config::get().readConfigFile(CONFIG_PATH);
+
+	webBackend("readyFile2.xx");
+
 #define CSTEST
 #ifdef CSTEST
 
 
-	HANDLE hRdMaster;
-	HANDLE hWrSlave;
-
-	bool bReturn;
-	//bReturn = CreatePipe(&hRdMaster,&hWrSlave,)
 
 
+	//Pipe Init Data
+	char buf[BUFFER_SIZE];
+
+	LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
+	LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
+
+	DWORD cbWritten;
+	DWORD dwBytesToWrite = (DWORD)strlen(buf);
+
+	DWORD cbRead;
+	DWORD dwBytesToRead = BUFFER_SIZE;
+
+	//Thread Init Data
+	DWORD threadId;
+	HANDLE hThread = NULL;
+
+	BOOL Write_St = TRUE;
+
+	Finished = FALSE;
 
 
 
 
+	hPipe1 = CreateNamedPipe(lpszPipename1, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
+	hPipe2 = CreateNamedPipe(lpszPipename2, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
 
-	/*
-	Process^ pipeClient = gcnew Process();
+	HANDLE sem = CreateSemaphore(NULL, 0, 1, _TEXT("Global\\sem_test"));
 
-	pipeClient->StartInfo->FileName = "pipeClient.exe";
+	
 
-	AnonymousPipeServerStream^ pipeServer =
-		gcnew AnonymousPipeServerStream(PipeDirection::Out,
-			HandleInheritability::Inheritable);
-	// Show that anonymous pipes do not support Message mode.
-	try
+	//hPipe1 = CreateFile(lpszPipename1, GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+	//hPipe2 = CreateFile(lpszPipename2, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+
+	if ((hPipe1 == NULL || hPipe1 == INVALID_HANDLE_VALUE) || (hPipe2 == NULL || hPipe2 == INVALID_HANDLE_VALUE))
 	{
-		Console::WriteLine("[SERVER] Setting ReadMode to \"Message\".");
-		pipeServer->ReadMode = PipeTransmissionMode::Message;
+		printf("Could not open the pipe  - (error {0})\n", GetLastError());
+
 	}
-	catch (NotSupportedException^ e)
+	else if (sem == NULL)
 	{
-		Console::WriteLine("[SERVER] Exception:\n    {0}", e->Message);
+		printf("CreateSemaphore error: %d\n", GetLastError());
 	}
-
-	Console::WriteLine("[SERVER] Current TransmissionMode: {0}.",
-		pipeServer->TransmissionMode);
-
-	// Pass the client process a handle to the server.
-	pipeClient->StartInfo->Arguments =
-		pipeServer->GetClientHandleAsString();
-	pipeClient->StartInfo->UseShellExecute = false;
-	pipeClient->Start();
-
-	pipeServer->DisposeLocalCopyOfClientHandle();
-
-	try
+	else if(false)
 	{
-		// Read user input and send that to the client process.
-		StreamWriter^ sw = gcnew StreamWriter(pipeServer);
 
-		sw->AutoFlush = true;
-		// Send a 'sync message' and wait for client to receive it.
-		sw->WriteLine("SYNC");
-		pipeServer->WaitForPipeDrain();
-		// Send the console input to the client process.
-		Console::Write("[SERVER] Enter text: ");
-		sw->WriteLine(Console::ReadLine());
-		sw->Close();
+		//hThread = CreateThread(NULL, 0, &NET_RvThr, NULL, 0, NULL);
+		do
+		{
+			printf("Enter your message: ");
+			//cin.getline(buf, 100);
+			//cin.clear();
+			scanf("%s", buf);
+			//cin.ignore(INT_MAX);
+			//cin >> buf;
+			string str = string(buf);
+			cout << "STRING: " << str << endl;
+			//scanf("%s", buf); //cin >> buf;
+			if (strcmp(buf, "quit") == 0)
+				Write_St = FALSE;
+			else
+			{
+				WriteFile(hPipe1, buf, dwBytesToWrite, &cbWritten, NULL);
+				memset(buf, 0xCC, 100);
+				
+			}
+			
+
+		} while (Write_St);
+
+		CloseHandle(hPipe1);
+		CloseHandle(hPipe2);
+		Finished = TRUE;
 	}
-	// Catch the IOException that is raised if the pipe is broken
-	// or disconnected.
-	catch (IOException^ e)
+	else
 	{
-		Console::WriteLine("[SERVER] Error: {0}", e->Message);
+		if (true)
+		{
+			while(true)
+			{
+				string stop;
+				/*
+				cout << "Waiting for client sema..." << endl;
+				WaitForSingleObject(sem, INFINITE);
+				cout << "Releasing sema" << endl;
+				ReleaseSemaphore(sem, 1, NULL);
+				cout << "Sema done." << endl;
+				*/
+
+				cout << "Waiting for client..." << endl;
+				ConnectNamedPipe(hPipe1, NULL);
+				ReleaseSemaphore(sem, 1, NULL);
+				ConnectNamedPipe(hPipe2, NULL);
+				cout << "Pipes connected." << endl;
+
+				//bool loop = true;
+				//while (loop)
+				//{
+					ReadFile(hPipe1, buf, dwBytesToRead, &cbRead, NULL);
+					cout << dwBytesToRead << endl;
+					cout << cbRead << endl;
+
+					//if (buf[0] == 'q' && buf[1] == 'u' && buf[2] == 'i' && buf[3] == 't' && buf[3] == '\0')
+					//{
+					//	loop = false;
+					//}
+					//else
+					//{
+						//int sum = 0;
+						//for (int i = 0; i < BUFFER_SIZE; i++)
+						//{
+						//	cout << buf[i];
+						//	sum += buf[i];
+						//}
+						//cout << endl;
+						//memset(buf, 0xCC, BUFFER_SIZE);
+						//_itoa(sum, buf, 10);
+						//cout << buf << endl;
+						//cin >> stop;
+						
+					string tmp = string(buf);
+					cout << tmp << endl;
+						cout << buf << endl;
+						//memset(buf, 97, BUFFER_SIZE);
+						dwBytesToWrite = (DWORD)strlen(buf);
+						WriteFile(hPipe2, buf, dwBytesToWrite, &cbWritten, NULL);
+						memset(buf, 0, BUFFER_SIZE);
+					//}
+				//}
+				DisconnectNamedPipe(hPipe1);
+				DisconnectNamedPipe(hPipe2);
+				cout << "Pipes disconnected." << endl;
+			}
+		}
+		else
+		{
+			cout << "Wait failed" << endl;
+		}
+
 	}
-	pipeServer->Close();
-	pipeClient->WaitForExit();
-	pipeClient->Close();
-	Console::WriteLine("[SERVER] Client quit. Server terminating.");
-	*/
+
+	CloseHandle(hPipe1);
+	CloseHandle(hPipe2);
+	CloseHandle(sem);
+
+	getchar();
 
 	return 0;
 #endif
 
 
-	Config::get().readConfigFile(CONFIG_PATH);
+	
 #ifdef _DEBUG
 	Config::get().printConfig();
 #endif
