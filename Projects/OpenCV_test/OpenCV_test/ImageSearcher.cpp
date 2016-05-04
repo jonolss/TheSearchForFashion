@@ -947,6 +947,7 @@ int webBackend(string catalogePath)
 			pos = request.find('\n');
 		}
 
+		
 
 		string reqType = reqArgs[0];
 		if (reqType == "imgSearch")

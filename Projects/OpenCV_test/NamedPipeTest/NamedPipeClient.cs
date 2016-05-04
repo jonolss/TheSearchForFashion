@@ -170,7 +170,7 @@ namespace NamedPipeTest
             CloseHandle(syncSema);
         }
 
-        public int Run()
+        public string Run(string msg)
         {
             mutexSema = OpenSemaphore(
                 0x1F0003,
@@ -180,7 +180,7 @@ namespace NamedPipeTest
             if (mutexSema == IntPtr.Zero)
             {
                 Console.WriteLine("CreateMutexSemaphore error: {0}", GetLastError());
-                return 1;
+                return "";
             }
 
             Console.WriteLine("Requesting access to server...");
@@ -205,23 +205,18 @@ namespace NamedPipeTest
                     }
                 }
 
-                Console.WriteLine(WriteToServer("imgSearch\n" +
-                                                "testfiles/dress0.jpg\n" +
-                                                "12\n" +
-                                                "All\n" +
-                                                "1,1,2,2,2\n" +
-                                                "None\n"));
+                Console.WriteLine(WriteToServer(msg));
 
-                Console.WriteLine(ReadFromServer()); //<-- doesnt 
+                string result = ReadFromServer();
 
                 DisconnectFromServer();
 
-                return 0;
+                return result;
             }
             else
             {
                 Console.WriteLine("Server is busy.");
-                return 2;
+                return "";
             }
 
         }

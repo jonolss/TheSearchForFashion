@@ -15,23 +15,23 @@ ImageSearcher.cpp(836): warning C4244: 'return': conversion from 'WPARAM' to 'in
 ImageSearcher.cpp(942): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
 ImageSearcher.cpp(947): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
 ImageSearcher.cpp(941): warning C4101: 'tmp': unreferenced local variable
-ImageSearcher.cpp(1116): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1121): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1115): warning C4101: 'tmp': unreferenced local variable
-ImageSearcher.cpp(1370): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1492): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-ImageSearcher.cpp(1499): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-ImageSearcher.cpp(1506): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-ImageSearcher.cpp(1522): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-ImageSearcher.cpp(1604): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1615): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1650): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1652): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1654): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
-ImageSearcher.cpp(1657): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1117): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1122): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1116): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(1371): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1493): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1500): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1507): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1523): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1605): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1616): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1651): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1653): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1655): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1658): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
 C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\utility(165): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-  ImageSearcher.cpp(1338): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
-  ImageSearcher.cpp(1338): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
+  ImageSearcher.cpp(1339): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
+  ImageSearcher.cpp(1339): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
   Generating code
   105 of 6473 functions ( 1.6%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
