@@ -839,6 +839,8 @@ int guiFrontend(string catalogePath)
 #define BUFFER_SIZE 1000
 int webBackend(string catalogePath)
 {
+	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
+	hashTable = makeIdToPathTable(*tmp);
 
 	vector<ClothArticle*> *allArticles;
 	cv::Ptr<cv::ml::RTrees> colorModel;
@@ -938,19 +940,18 @@ int webBackend(string catalogePath)
 
 		string request = string(inBuf);
 
-		char tmp;
-		int pos = request.find('\n');
+		string stmp = request;
+		char ctmp;
+		int pos = stmp.find('\n');
 		while (pos != string::npos)
 		{
-			reqArgs.push_back(request.substr(0, pos));
-			request = request.substr(pos + 1, request.length() - pos + 1);
-			pos = request.find('\n');
+			reqArgs.push_back(stmp.substr(0, pos));
+			stmp = stmp.substr(pos + 1, stmp.length() - pos + 1);
+			pos = stmp.find('\n');
 		}
 
-		
-
 		string reqType = reqArgs[0];
-		if (reqType == "imgSearch")
+		if (reqType == "imgSearch" && validQuery(request))
 		{
 			string path = reqArgs[1];
 			int    n = stoi(reqArgs[2]);
@@ -1020,7 +1021,7 @@ int webBackend(string catalogePath)
 			string answer = "";
 			for (int i = 0; i < closeNeigh.size(); i++)
 			{
-				answer += closeNeigh[i] + '\n';
+				answer += hashTable[closeNeigh[i]] + '\n';
 			}
 
 			memset(outBuf, 0, BUFFER_SIZE);
