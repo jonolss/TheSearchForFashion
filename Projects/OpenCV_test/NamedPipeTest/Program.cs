@@ -101,7 +101,7 @@ namespace NamedPipeTest
             return result;
         }
 
-        private void MyFunc()
+        private void MyFunc()    //fixa så C# använder CreateFile för att kommunicera med C++ koden.
         {
             PClient = new NamedPipeClient(".", "myNamedPipe2", "myNamedPipe1", "sem");
 

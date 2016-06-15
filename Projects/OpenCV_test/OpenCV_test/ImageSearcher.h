@@ -10,6 +10,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #include "ImageUtilities.h"
 #include "my_win_utills.h"
 
+#include <aclapi.h>
 #include <stdlib.h>
 #include <iostream>
 #include <queue>
@@ -23,8 +24,13 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 //#include <stdio.h>
 //#include <strsafe.h>
 #include <unordered_map>
+#include <queue>
 
 using namespace std;
+
+DWORD WINAPI readingFromFile(LPVOID lpParam);
+DWORD WINAPI readingFromFileV2(LPVOID lpParam);
+
 vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, vector<string> fVecType, vector<double> fVecVal, string filterType);
 //vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, vector<string> fVecType, string filterType);
 vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothArticle* query, int n, string fVecType, string filterType);

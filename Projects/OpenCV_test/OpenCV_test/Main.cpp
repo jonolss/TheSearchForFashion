@@ -98,9 +98,52 @@ DWORD WINAPI test_thread( LPVOID lpParam)
 	return 0;
 }
 
+
+
 int main(int argc, char* argv[])
 {
 	Config::get().readConfigFile(CONFIG_PATH);
+
+
+	HANDLE outFile = CreateFile(
+		_TEXT("D:\\tsff_in"), //_TEXT("D:\\test.txt"),//_TEXT("\\.\\tsff_in"),
+		GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_DELETE,
+		NULL,
+		CREATE_ALWAYS,//OPEN_ALWAYS,
+		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
+		NULL);
+
+	if (outFile == NULL)
+	{
+		cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
+	}
+
+
+	DWORD cbWritten;
+	char outBuf[BUFFER_SIZE];
+
+	memset(outBuf, 0, BUFFER_SIZE);
+	string msg = "imgSearch\ntestfiles/dress0.jpg\n12\nClothingType,Silhouette,Pattern,Color,Template,\n2,2,1,1,1\nNone\t";
+	strcpy(outBuf, msg.c_str());
+
+	for (int i = 0; i < 1; i++)
+	{
+		WriteFile(outFile, outBuf, msg.length(), &cbWritten, NULL);
+	}
+	memset(outBuf, 0, BUFFER_SIZE);
+
+	HANDLE readThread;
+	DWORD readThreadId;
+	readThread = CreateThread(
+		NULL,
+		0,
+		readingFromFileV2,
+		NULL,
+		0,
+		&readThreadId
+		);
+
 
 	webBackend("readyFile2.xx");
 
@@ -116,7 +159,7 @@ int main(int argc, char* argv[])
 	LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
 	LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
 
-	DWORD cbWritten;
+	//DWORD cbWritten;
 	DWORD dwBytesToWrite = (DWORD)strlen(buf);
 
 	DWORD cbRead;

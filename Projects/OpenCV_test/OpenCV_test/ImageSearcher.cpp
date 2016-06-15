@@ -836,7 +836,205 @@ int guiFrontend(string catalogePath)
 	return Msg.wParam;
 }
 
+
+
+void createSemSecAtt(SECURITY_ATTRIBUTES *sa)
+{
+	DWORD dwRes, dwDisposition;
+	PSID pEveryoneSID = NULL, pAdminSID = NULL;
+	PACL pACL = NULL;
+	PSECURITY_DESCRIPTOR pSD = NULL;
+	EXPLICIT_ACCESS ea[1];
+	SID_IDENTIFIER_AUTHORITY SIDAuthWorld =
+		SECURITY_WORLD_SID_AUTHORITY;
+	SID_IDENTIFIER_AUTHORITY SIDAuthNT = SECURITY_NT_AUTHORITY;
+	LONG lRes;
+	HKEY hkSub = NULL;
+
+	if (!AllocateAndInitializeSid(&SIDAuthWorld, 1,
+		SECURITY_WORLD_RID,
+		0, 0, 0, 0, 0, 0, 0,
+		&pEveryoneSID))
+	{
+		_tprintf(_T("AllocateAndInitializeSid Error %u\n"), GetLastError());
+		goto Cleanup;
+	}
+
+	// Create a well-known SID for the Everyone group.
+	if (!AllocateAndInitializeSid(&SIDAuthWorld, 1,
+		SECURITY_WORLD_RID,
+		0, 0, 0, 0, 0, 0, 0,
+		&pEveryoneSID))
+	{
+		_tprintf(_T("AllocateAndInitializeSid Error %u\n"), GetLastError());
+		goto Cleanup;
+	}
+
+	// Initialize an EXPLICIT_ACCESS structure for an ACE.
+	// The ACE will allow Everyone read access to the key.
+	ZeroMemory(&ea, sizeof(EXPLICIT_ACCESS));
+	ea[0].grfAccessPermissions = KEY_ALL_ACCESS;
+	ea[0].grfAccessMode = SET_ACCESS;
+	ea[0].grfInheritance = NO_INHERITANCE;
+	ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+	ea[0].Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+	ea[0].Trustee.ptstrName = (LPTSTR)pEveryoneSID;
+
+
+	// Create a new ACL that contains the new ACE.
+	dwRes = SetEntriesInAcl(1, ea, NULL, &pACL);
+	if (ERROR_SUCCESS != dwRes)
+	{
+		_tprintf(_T("SetEntriesInAcl Error %u\n"), GetLastError());
+		goto Cleanup;
+	}
+
+	// Initialize a security descriptor.  
+	pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR,
+		SECURITY_DESCRIPTOR_MIN_LENGTH);
+	if (NULL == pSD)
+	{
+		_tprintf(_T("LocalAlloc Error %u\n"), GetLastError());
+		goto Cleanup;
+	}
+
+	if (!InitializeSecurityDescriptor(pSD,
+		SECURITY_DESCRIPTOR_REVISION))
+	{
+		_tprintf(_T("InitializeSecurityDescriptor Error %u\n"),
+			GetLastError());
+		goto Cleanup;
+	}
+
+	// Add the ACL to the security descriptor. 
+	if (!SetSecurityDescriptorDacl(pSD,
+		TRUE,     // bDaclPresent flag   
+		pACL,
+		FALSE))   // not a default DACL 
+	{
+		_tprintf(_T("SetSecurityDescriptorDacl Error %u\n"),
+			GetLastError());
+		goto Cleanup;
+	}
+
+	// Initialize a security attributes structure.
+	sa->nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa->lpSecurityDescriptor = pSD;
+	sa->bInheritHandle = FALSE;
+
+Cleanup:
+
+	if (pEveryoneSID)
+		FreeSid(pEveryoneSID);
+	if (pAdminSID)
+		FreeSid(pAdminSID);
+	if (pACL)
+		LocalFree(pACL);
+	if (pSD)
+		LocalFree(pSD);
+	if (hkSub)
+		RegCloseKey(hkSub);
+
+	return;
+
+
+}
+
+typedef struct ReadData {
+	LPWSTR fileName;
+	queue<string> *jobs;
+} READDATA, *PREADDATA;
+
 #define BUFFER_SIZE 1000
+DWORD WINAPI readingFromFile(LPVOID lpParam)
+{
+	PREADDATA arg = (PREADDATA)lpParam;
+
+	LPWSTR fileName = arg->fileName;
+	queue<string> *jobs = arg->jobs;
+	
+
+	HANDLE inFile = CreateFile(
+		fileName, //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
+		GENERIC_READ,
+		FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		NULL,
+		OPEN_ALWAYS, //CREATE_ALWAYS,
+		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
+		NULL);
+
+	if (inFile == NULL)
+	{
+		cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
+	}
+
+
+
+	DWORD cbRead;
+	char inBuf[BUFFER_SIZE];
+
+	while (true)
+	{
+		memset(inBuf, 0, BUFFER_SIZE);
+		ReadFile(inFile, inBuf, BUFFER_SIZE, &cbRead, NULL);
+
+		string request = string(inBuf);
+
+		//cout << jobs->size() << endl;
+
+		if (request.length() != 0)
+		{
+			string stmp = request;
+			int pos = stmp.find('\t');
+			while (pos != string::npos)
+			{
+				jobs->push(stmp.substr(0, pos) + "\n");
+				stmp = stmp.substr(pos + 1, stmp.length() - pos + 1);
+				pos = stmp.find('\t');
+			}
+		}
+		Sleep(10);
+	}
+}
+
+
+DWORD WINAPI readingFromFileV2(LPVOID lpParam)
+{
+	HANDLE inFile = CreateFile(
+		_TEXT("D:\\tsff_out"), //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
+		GENERIC_READ,
+		FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		NULL,
+		CREATE_NEW, //CREATE_ALWAYS,
+		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
+		NULL);
+
+	if (inFile == NULL)
+	{
+		cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
+	}
+
+
+
+	DWORD cbRead;
+	char inBuf[BUFFER_SIZE];
+
+	while (true)
+	{
+		memset(inBuf, 0, BUFFER_SIZE);
+		ReadFile(inFile, inBuf, BUFFER_SIZE, &cbRead, NULL);
+
+		string request = string(inBuf);
+
+		if (request.length() != 0)
+		{
+			cout << request << endl;
+		}
+		Sleep(10);
+	}
+}
+
+
 int webBackend(string catalogePath)
 {
 	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
@@ -874,27 +1072,74 @@ int webBackend(string catalogePath)
 #endif
 	}
 
-	char inBuf[BUFFER_SIZE];
+	
+	//char inBuf[BUFFER_SIZE];
 	char outBuf[BUFFER_SIZE];
 
-	LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
-	LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
+	//LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
+	//LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
 
 	DWORD cbWritten;
 	DWORD dwBytesToWrite = (DWORD)strlen(outBuf);
 
-	DWORD cbRead;
-	DWORD dwBytesToRead = BUFFER_SIZE;
+	//DWORD cbRead;
+	//DWORD dwBytesToRead = BUFFER_SIZE;
 
 
-	HANDLE hPipe1 = CreateNamedPipe(lpszPipename1, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
-	HANDLE hPipe2 = CreateNamedPipe(lpszPipename2, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
+	//HANDLE hPipe1 = CreateNamedPipe(lpszPipename1, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
+	//HANDLE hPipe2 = CreateNamedPipe(lpszPipename2, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
 
-	HANDLE mutexSem = CreateSemaphore(NULL, 1, 1, _TEXT("Global\\sem_mutex"));
-	HANDLE syncSem = CreateSemaphore(NULL, 0, 1, _TEXT("Global\\sem_sync"));
+	//SECURITY_ATTRIBUTES sa;
+	//createSemSecAtt(&sa);
+
+	//HANDLE mutexSem = CreateSemaphore(NULL, 1, 1, _TEXT("Global\\sem_mutex")); //_TEXT("Global\\sem_mutex"));
+	//HANDLE syncSem = CreateSemaphore(NULL, 0, 1, _TEXT("Global\\sem_mutex")); //_TEXT("Global\\sem_sync"));
 
 
 	int count = 0;
+
+	/*
+	cout << "Waiting for client..." << endl;
+	ConnectNamedPipe(hPipe1, NULL);  //funkar inte pga .net vill connecta konstant typ
+	ConnectNamedPipe(hPipe2, NULL);  //kanske kan gå över till Files istället
+	cout << "Pipes connected." << endl;
+	*/
+	
+	HANDLE outFile = CreateFile(
+		_TEXT("D:\\tsff_out"),
+		GENERIC_WRITE,
+		FILE_SHARE_READ | FILE_SHARE_DELETE,
+		NULL,
+		CREATE_NEW,
+		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
+		NULL);
+
+
+
+
+	//Gör den här till en egen tråd som konstant läser från input.
+	//Gör en liknande för utskrift när huvudtråden gjort sitt.
+	HANDLE readThread;
+	DWORD readThreadId;
+	
+
+	
+	queue<string> *jobs = new queue<string>();
+
+	PREADDATA thArgs = (PREADDATA) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(READDATA));
+	thArgs->fileName = _TEXT("D:\\tsff_in");//_TEXT("D:\\test.txt");
+	thArgs->jobs = jobs;
+
+	readThread = CreateThread(
+		NULL,
+		0,
+		readingFromFile,
+		thArgs,
+		0,
+		&readThreadId
+		);
+
+
 
 	while (true)
 	{
@@ -927,18 +1172,19 @@ int webBackend(string catalogePath)
 		}
 		*/
 		
+		while (jobs->empty())
+		{
+			Sleep(10);
+		}
 		
-		cout << "Waiting for client..." << endl;
-		ReleaseSemaphore(mutexSem, 1, NULL);
-		ConnectNamedPipe(hPipe1, NULL);
-		ReleaseSemaphore(syncSem, 1, NULL);
-		ConnectNamedPipe(hPipe2, NULL);
-		cout << "Pipes connected." << endl;
+		//memset(inBuf, 0, BUFFER_SIZE);
+		//ReadFile(hPipe1, inBuf, dwBytesToRead, &cbRead, NULL);
 
-		memset(inBuf, 0, BUFFER_SIZE);
-		ReadFile(hPipe1, inBuf, dwBytesToRead, &cbRead, NULL);
+		//string request = string(inBuf);
+		string request = jobs->front();
+		jobs->pop();
 
-		string request = string(inBuf);
+		cout << request << endl;
 
 		string stmp = request;
 		char ctmp;
@@ -1024,30 +1270,38 @@ int webBackend(string catalogePath)
 				answer += hashTable[closeNeigh[i]] + '\n';
 			}
 
+
+			cout << "Sending Results" << endl;
+			//cout << answer << endl;
+
 			memset(outBuf, 0, BUFFER_SIZE);
 			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
 			dwBytesToWrite = (DWORD)strlen(outBuf);
-			WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
+			WriteFile(outFile, outBuf, dwBytesToWrite, &cbWritten, NULL);
 		}
 		else
 		{
 			string answer = "Wrong input.\n";
-			memset(outBuf, 0, BUFFER_SIZE);
-			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
-			dwBytesToWrite = (DWORD)strlen(outBuf);
-			WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
+			
+			cout << answer << endl;
+			//memset(outBuf, 0, BUFFER_SIZE);
+			//strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			//dwBytesToWrite = (DWORD)strlen(outBuf);
+			//WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
 		}
-
-		DisconnectNamedPipe(hPipe1);
-		DisconnectNamedPipe(hPipe2);
-		cout << "Pipes disconnected." << endl;
+		
 		
 	}
+	/*
+	DisconnectNamedPipe(hPipe1);
+	DisconnectNamedPipe(hPipe2);
+	cout << "Pipes disconnected." << endl;
 
 	CloseHandle(hPipe1);
 	CloseHandle(hPipe2);
 	CloseHandle(syncSem);
 	CloseHandle(mutexSem);
+	*/
 }
 
 /**Backend loop that handles requests from the front end of the program.
