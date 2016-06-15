@@ -1001,7 +1001,7 @@ DWORD WINAPI readingFromFile(LPVOID lpParam)
 DWORD WINAPI readingFromFileV2(LPVOID lpParam)
 {
 	HANDLE inFile = CreateFile(
-		_TEXT("D:\\tsff_out"), //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
+		_TEXT("D:\\tsff_front2back"), //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
 		GENERIC_READ,
 		FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 		NULL,
@@ -1106,7 +1106,7 @@ int webBackend(string catalogePath)
 	*/
 	
 	HANDLE outFile = CreateFile(
-		_TEXT("D:\\tsff_out"),
+		_TEXT("D:\\tsff_back2front"),
 		GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE,
 		NULL,
@@ -1127,7 +1127,7 @@ int webBackend(string catalogePath)
 	queue<string> *jobs = new queue<string>();
 
 	PREADDATA thArgs = (PREADDATA) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(READDATA));
-	thArgs->fileName = _TEXT("D:\\tsff_in");//_TEXT("D:\\test.txt");
+	thArgs->fileName = _TEXT("D:\\tsff_front2back");//_TEXT("D:\\test.txt");
 	thArgs->jobs = jobs;
 
 	readThread = CreateThread(

@@ -1,15 +1,51 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Release\) contains files shared from another project (OpenCV_test.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  ImageSearcher.cpp
+ImageSearcher.cpp(289): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(294): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(165): warning C4101: 'e': unreferenced local variable
+ImageSearcher.cpp(209): warning C4101: 'e': unreferenced local variable
+ImageSearcher.cpp(267): warning C4101: 'e': unreferenced local variable
+ImageSearcher.cpp(288): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(485): warning C4244: '=': conversion from 'WCHAR' to 'char', possible loss of data
+ImageSearcher.cpp(492): warning C4244: '=': conversion from 'WCHAR' to 'char', possible loss of data
+ImageSearcher.cpp(567): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(572): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(566): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(836): warning C4244: 'return': conversion from 'WPARAM' to 'int', possible loss of data
+ImageSearcher.cpp(851): warning C4101: 'lRes': unreferenced local variable
+ImageSearcher.cpp(843): warning C4101: 'dwDisposition': unreferenced local variable
+ImageSearcher.cpp(988): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(993): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1191): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1196): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1190): warning C4101: 'ctmp': unreferenced local variable
+ImageSearcher.cpp(1372): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1377): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1371): warning C4101: 'tmp': unreferenced local variable
+ImageSearcher.cpp(1626): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1748): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1755): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1762): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1778): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+ImageSearcher.cpp(1860): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1871): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1906): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1908): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1910): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+ImageSearcher.cpp(1913): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\utility(165): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  ImageSearcher.cpp(1594): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
+  ImageSearcher.cpp(1594): note: see reference to function template instantiation 'std::pair<float,std::string> &std::pair<float,std::string>::operator =<double,std::string>(std::pair<double,std::string> &&)' being compiled
   Main.cpp
 Main.cpp(44): warning C4018: '<': signed/unsigned mismatch
-Main.cpp(132): warning C4267: 'argument': conversion from 'size_t' to 'DWORD', possible loss of data
-Main.cpp(559): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-Main.cpp(565): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-Main.cpp(192): warning C4474: 'printf' : too many arguments passed for format string
-  Main.cpp(192): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
-Main.cpp(169): warning C4101: 'threadId': unreferenced local variable
+Main.cpp(561): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+Main.cpp(567): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+Main.cpp(194): warning C4474: 'printf' : too many arguments passed for format string
+  Main.cpp(194): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+Main.cpp(171): warning C4101: 'threadId': unreferenced local variable
   Generating code
-  102 of 6548 functions ( 1.6%) were compiled, the rest were copied from previous compilation.
+  104 of 6548 functions ( 1.6%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    22 functions had inline decision re-evaluated but remain unchanged
+    27 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   OpenCV_test.vcxproj -> C:\Users\jonathan.olsson\Documents\Git\TheSearchForFashion\Projects\OpenCV_test\x64\Release\The_Search_For_Fashion.exe

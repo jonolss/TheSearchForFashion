@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 
 
 	HANDLE outFile = CreateFile(
-		_TEXT("D:\\tsff_in"), //_TEXT("D:\\test.txt"),//_TEXT("\\.\\tsff_in"),
+		_TEXT("D:\\tsff_front2back"), //_TEXT("D:\\test.txt"),//_TEXT("\\.\\tsff_in"),
 		GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE,
 		NULL,
@@ -129,9 +129,11 @@ int main(int argc, char* argv[])
 
 	for (int i = 0; i < 1; i++)
 	{
-		WriteFile(outFile, outBuf, msg.length(), &cbWritten, NULL);
+		;// WriteFile(outFile, outBuf, msg.length(), &cbWritten, NULL);
 	}
 	memset(outBuf, 0, BUFFER_SIZE);
+
+	CloseHandle(outFile);
 
 	HANDLE readThread;
 	DWORD readThreadId;
