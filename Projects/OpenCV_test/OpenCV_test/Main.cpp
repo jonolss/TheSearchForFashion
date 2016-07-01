@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 {
 	Config::get().readConfigFile(CONFIG_PATH);
 
-
+	/*
 	HANDLE outFile = CreateFile(
 		_TEXT("D:\\tsff_front2back"), //_TEXT("D:\\test.txt"),//_TEXT("\\.\\tsff_in"),
 		GENERIC_WRITE,
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
 		0,
 		&readThreadId
 		);
-
+	*/
 
 	webBackend("readyFile2.xx");
 
@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
 				Write_St = FALSE;
 			else
 			{
-				WriteFile(hPipe1, buf, dwBytesToWrite, &cbWritten, NULL);
+				//WriteFile(hPipe1, buf, dwBytesToWrite, &cbWritten, NULL);
 				memset(buf, 0xCC, 100);
 				
 			}
@@ -280,7 +280,7 @@ int main(int argc, char* argv[])
 						cout << buf << endl;
 						//memset(buf, 97, BUFFER_SIZE);
 						dwBytesToWrite = (DWORD)strlen(buf);
-						WriteFile(hPipe2, buf, dwBytesToWrite, &cbWritten, NULL);
+						//WriteFile(hPipe2, buf, dwBytesToWrite, &cbWritten, NULL);
 						memset(buf, 0, BUFFER_SIZE);
 					//}
 				//}

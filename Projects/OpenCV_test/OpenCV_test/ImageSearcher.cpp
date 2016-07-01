@@ -953,34 +953,42 @@ DWORD WINAPI readingFromFile(LPVOID lpParam)
 	LPWSTR fileName = arg->fileName;
 	queue<string> *jobs = arg->jobs;
 	
-
-	HANDLE inFile = CreateFile(
-		fileName, //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
-		GENERIC_READ,
-		FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-		NULL,
-		OPEN_ALWAYS, //CREATE_ALWAYS,
-		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
-		NULL);
-
-	if (inFile == NULL)
-	{
-		cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
-	}
-
-
-
 	DWORD cbRead;
 	char inBuf[BUFFER_SIZE];
 
+	cout << fileName << endl;
+
 	while (true)
 	{
+		HANDLE inFile = NULL;
+		while (inFile == NULL)
+		{
+			inFile = CreateFile(
+				_TEXT("D:\\tsff_front2back"),//fileName, //_TEXT("D:\\test.txt"),  //_TEXT("\\.\\tsff_in"),
+				GENERIC_READ | GENERIC_WRITE,
+				0, //FILE_SHARE_WRITE |FILE_SHARE_WRITE,
+				NULL,
+				OPEN_ALWAYS, //CREATE_ALWAYS,
+				FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
+				NULL);
+
+			if (inFile == NULL)
+			{
+				cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
+				Sleep(10);
+			}
+
+			if (inFile == INVALID_HANDLE_VALUE)
+			{
+				cout << "INVALID_HANDLE_VALUE" << endl;
+				cout << "Couldn't open file {error: " << GetLastError() << "}." << endl;
+			}
+		}
+		
 		memset(inBuf, 0, BUFFER_SIZE);
 		ReadFile(inFile, inBuf, BUFFER_SIZE, &cbRead, NULL);
 
 		string request = string(inBuf);
-
-		//cout << jobs->size() << endl;
 
 		if (request.length() != 0)
 		{
@@ -993,6 +1001,7 @@ DWORD WINAPI readingFromFile(LPVOID lpParam)
 				pos = stmp.find('\t');
 			}
 		}
+		CloseHandle(inFile);
 		Sleep(10);
 	}
 }
@@ -1105,18 +1114,7 @@ int webBackend(string catalogePath)
 	cout << "Pipes connected." << endl;
 	*/
 	
-	HANDLE outFile = CreateFile(
-		_TEXT("D:\\tsff_back2front"),
-		GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_DELETE,
-		NULL,
-		CREATE_NEW,
-		FILE_ATTRIBUTE_HIDDEN | FILE_FLAG_DELETE_ON_CLOSE,
-		NULL);
-
-
-
-
+	
 	//Gör den här till en egen tråd som konstant läser från input.
 	//Gör en liknande för utskrift när huvudtråden gjort sitt.
 	HANDLE readThread;
@@ -1264,12 +1262,34 @@ int webBackend(string catalogePath)
 			//vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
 			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
 
-			string answer = "";
+			string answer = path + "\n";
 			for (int i = 0; i < closeNeigh.size(); i++)
 			{
 				answer += hashTable[closeNeigh[i]] + '\n';
 			}
 
+
+			HANDLE outFile = NULL;
+			while (outFile == NULL)
+			{
+				outFile = CreateFile(
+					_TEXT("D:\\tsff_back2front"),
+					GENERIC_WRITE | GENERIC_READ, 
+					0, //FILE_SHARE_READ | FILE_SHARE_WRITE,
+					NULL,
+					OPEN_ALWAYS,
+					FILE_ATTRIBUTE_HIDDEN,
+					NULL);
+
+				if (outFile == NULL)
+					Sleep(10);
+
+				if (outFile == INVALID_HANDLE_VALUE)
+				{
+					cout << "INVALID_HANDLE_VALUE out" << endl;
+				}
+			}
+			
 
 			cout << "Sending Results" << endl;
 			//cout << answer << endl;
@@ -1278,6 +1298,7 @@ int webBackend(string catalogePath)
 			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
 			dwBytesToWrite = (DWORD)strlen(outBuf);
 			WriteFile(outFile, outBuf, dwBytesToWrite, &cbWritten, NULL);
+			CloseHandle(outFile);
 		}
 		else
 		{
@@ -1292,16 +1313,6 @@ int webBackend(string catalogePath)
 		
 		
 	}
-	/*
-	DisconnectNamedPipe(hPipe1);
-	DisconnectNamedPipe(hPipe2);
-	cout << "Pipes disconnected." << endl;
-
-	CloseHandle(hPipe1);
-	CloseHandle(hPipe2);
-	CloseHandle(syncSem);
-	CloseHandle(mutexSem);
-	*/
 }
 
 /**Backend loop that handles requests from the front end of the program.
