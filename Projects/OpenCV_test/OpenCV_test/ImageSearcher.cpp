@@ -465,6 +465,31 @@ bool validQuery(string query)
 	return true;
 }
 
+bool validQuery2(string query)
+{
+	istringstream iss(query);
+
+	int count = 0;
+	string line;
+	while (getline(iss, line, ';'))
+	{
+		cout << to_string(count) + ": " + line << endl;
+
+		if (count == 0 && line != "imgSearch2")
+			return false;
+		else if (count == 1 && !validPath(line))
+			return false;
+		else if (count == 2 && line == "")
+			return false;
+		count++;
+	}
+	if (count < 3)
+		return false;
+
+	return true;
+}
+
+
 /**Creates a search query from input.
 *
 * \param path The path of the query.
@@ -989,7 +1014,7 @@ DWORD WINAPI readingFromFile(LPVOID lpParam)
 		ReadFile(inFile, inBuf, BUFFER_SIZE, &cbRead, NULL);
 
 		string request = string(inBuf);
-
+		/*
 		if (request.length() != 0)
 		{
 			string stmp = request;
@@ -999,6 +1024,17 @@ DWORD WINAPI readingFromFile(LPVOID lpParam)
 				jobs->push(stmp.substr(0, pos) + "\n");
 				stmp = stmp.substr(pos + 1, stmp.length() - pos + 1);
 				pos = stmp.find('\t');
+			}
+		}*/
+		if (request.length() != 0)
+		{
+			string stmp = request;
+			int pos = stmp.find('\n');
+			while (pos != string::npos)
+			{
+				jobs->push(stmp.substr(0, pos) + ";");
+				stmp = stmp.substr(pos + 1, stmp.length() - pos + 1);
+				pos = stmp.find('\n');
 			}
 		}
 		CloseHandle(inFile);
@@ -1082,37 +1118,13 @@ int webBackend(string catalogePath)
 	}
 
 	
-	//char inBuf[BUFFER_SIZE];
 	char outBuf[BUFFER_SIZE];
-
-	//LPTSTR lpszPipename1 = TEXT("\\\\.\\pipe\\myNamedPipe1");
-	//LPTSTR lpszPipename2 = TEXT("\\\\.\\pipe\\myNamedPipe2");
 
 	DWORD cbWritten;
 	DWORD dwBytesToWrite = (DWORD)strlen(outBuf);
 
-	//DWORD cbRead;
-	//DWORD dwBytesToRead = BUFFER_SIZE;
-
-
-	//HANDLE hPipe1 = CreateNamedPipe(lpszPipename1, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
-	//HANDLE hPipe2 = CreateNamedPipe(lpszPipename2, PIPE_ACCESS_DUPLEX/* | FILE_FLAG_OVERLAPPED*/, PIPE_TYPE_MESSAGE, 1, BUFFER_SIZE, BUFFER_SIZE, 0, NULL);
-
-	//SECURITY_ATTRIBUTES sa;
-	//createSemSecAtt(&sa);
-
-	//HANDLE mutexSem = CreateSemaphore(NULL, 1, 1, _TEXT("Global\\sem_mutex")); //_TEXT("Global\\sem_mutex"));
-	//HANDLE syncSem = CreateSemaphore(NULL, 0, 1, _TEXT("Global\\sem_mutex")); //_TEXT("Global\\sem_sync"));
-
 
 	int count = 0;
-
-	/*
-	cout << "Waiting for client..." << endl;
-	ConnectNamedPipe(hPipe1, NULL);  //funkar inte pga .net vill connecta konstant typ
-	ConnectNamedPipe(hPipe2, NULL);  //kanske kan gå över till Files istället
-	cout << "Pipes connected." << endl;
-	*/
 	
 	
 	//Gör den här till en egen tråd som konstant läser från input.
@@ -1125,7 +1137,7 @@ int webBackend(string catalogePath)
 	queue<string> *jobs = new queue<string>();
 
 	PREADDATA thArgs = (PREADDATA) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(READDATA));
-	thArgs->fileName = _TEXT("D:\\tsff_front2back");//_TEXT("D:\\test.txt");
+	thArgs->fileName = _TEXT("D:\\tsff_front2back");
 	thArgs->jobs = jobs;
 
 	readThread = CreateThread(
@@ -1186,22 +1198,136 @@ int webBackend(string catalogePath)
 
 		string stmp = request;
 		char ctmp;
-		int pos = stmp.find('\n');
+		int pos = stmp.find(';');//stmp.find('\n');
 		while (pos != string::npos)
 		{
 			reqArgs.push_back(stmp.substr(0, pos));
 			stmp = stmp.substr(pos + 1, stmp.length() - pos + 1);
-			pos = stmp.find('\n');
+			pos = stmp.find(';');//stmp.find('\n');
+		}
+
+		for (int i = 0; i < reqArgs.size(); i++)
+		{
+			cout << to_string(i) + ": " + reqArgs[i] << endl;
 		}
 
 		string reqType = reqArgs[0];
-		if (reqType == "imgSearch" && validQuery(request))
+		if (reqType == "imgSearch2" && validQuery2(request))
 		{
 			string path = reqArgs[1];
-			int    n = stoi(reqArgs[2]);
-			string fVecType = reqArgs[3];
-			string fVecVals = reqArgs[4];  // <--- fixa in dom här till featFilter
-			string filters = reqArgs[5];
+			int    n = 12;                                                       //stoi(reqArgs[2]);
+			string fVecType = "ClothingType,Silhouette,Pattern,Color,Template,"; //reqArgs[3];
+			string fVecVals = "1,1,2,2,2";                                       //reqArgs[4];  // <--- fixa in dom här till featFilter
+			string filters = "None";                                             //reqArgs[5];
+
+			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
+
+#ifdef _FILTERS
+			cv::Mat multVec;
+			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
+			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClothingType", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClType(art_clType((int)clTypeModel->predict(multVec)));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "Silhouette", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterId((int)clustSillModel->predict(multVec));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClustColor", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterColor((int)clustColorModel->predict(multVec));
+
+			featVec = createFeatureVector(queryArticle);
+			filtVec = createFilterVector(featVec.size(), "ClustClType", 1.0f, 0.0f);
+			cv::multiply(featVec, filtVec, multVec);
+			queryArticle->setClusterClType((int)clustClTypeModel->predict(multVec));
+#endif
+			vector<string> fVecTypes;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecType.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecTypes.push_back(string(tmpPoint));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
+
+			vector<double> fVecValsD;
+			{
+				char tmp[120];
+				strcpy(tmp, fVecVals.c_str());
+				char *tmpPoint;
+				tmpPoint = strtok(tmp, ",");
+				while (tmpPoint != NULL)
+				{
+					fVecValsD.push_back(stod(string(tmpPoint)));
+					tmpPoint = strtok(NULL, ",");
+				}
+			}
+
+
+			//vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
+			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
+
+			string answer = reqArgs[2] + ";";
+			for (int i = 0; i < closeNeigh.size(); i++)
+			{
+				answer += hashTable[closeNeigh[i]] + ';';
+			}
+			answer += '\n';
+
+			HANDLE outFile = NULL;
+			while (outFile == NULL)
+			{
+				outFile = CreateFile(
+					_TEXT("D:\\tsff_back2front"),
+					GENERIC_WRITE | GENERIC_READ,
+					0, //FILE_SHARE_READ | FILE_SHARE_WRITE,
+					NULL,
+					OPEN_ALWAYS,
+					FILE_ATTRIBUTE_HIDDEN,
+					NULL);
+
+				if (outFile == NULL)
+					Sleep(10);
+
+				if (outFile == INVALID_HANDLE_VALUE)
+				{
+					cout << "INVALID_HANDLE_VALUE out" << endl;
+				}
+			}
+
+			SetFilePointer(
+				outFile,
+				NULL,
+				NULL,
+				2);
+
+			cout << "Sending Results" << endl;
+
+			memset(outBuf, 0, BUFFER_SIZE);
+			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			dwBytesToWrite = (DWORD)strlen(outBuf);
+			WriteFile(outFile, outBuf, dwBytesToWrite, &cbWritten, NULL);
+			CloseHandle(outFile);
+		}
+		else if (reqType == "imgSearch" && validQuery(request))
+		{
+			string path = reqArgs[1];
+			int    n = 12;                                                       //stoi(reqArgs[2]);
+			string fVecType = "ClothingType,Silhouette,Pattern,Color,Template,"; //reqArgs[3];
+			string fVecVals = "1,1,2,2,2";                                       //reqArgs[4];  // <--- fixa in dom här till featFilter
+			string filters = "None";                                             //reqArgs[5];
 
 			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
 
@@ -1274,7 +1400,7 @@ int webBackend(string catalogePath)
 			{
 				outFile = CreateFile(
 					_TEXT("D:\\tsff_back2front"),
-					GENERIC_WRITE | GENERIC_READ, 
+					GENERIC_WRITE | GENERIC_READ,
 					0, //FILE_SHARE_READ | FILE_SHARE_WRITE,
 					NULL,
 					OPEN_ALWAYS,
@@ -1289,7 +1415,7 @@ int webBackend(string catalogePath)
 					cout << "INVALID_HANDLE_VALUE out" << endl;
 				}
 			}
-			
+
 
 			cout << "Sending Results" << endl;
 			//cout << answer << endl;
@@ -1303,14 +1429,8 @@ int webBackend(string catalogePath)
 		else
 		{
 			string answer = "Wrong input.\n";
-			
 			cout << answer << endl;
-			//memset(outBuf, 0, BUFFER_SIZE);
-			//strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
-			//dwBytesToWrite = (DWORD)strlen(outBuf);
-			//WriteFile(hPipe2, outBuf, dwBytesToWrite, &cbWritten, NULL);
 		}
-		
 		
 	}
 }
