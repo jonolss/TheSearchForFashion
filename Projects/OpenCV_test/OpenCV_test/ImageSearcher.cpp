@@ -970,7 +970,7 @@ typedef struct ReadData {
 	queue<string> *jobs;
 } READDATA, *PREADDATA;
 
-#define BUFFER_SIZE 1000
+#define BUFFER_SIZE 10000
 DWORD WINAPI readingFromFile(LPVOID lpParam)
 {
 	PREADDATA arg = (PREADDATA)lpParam;
@@ -1280,6 +1280,7 @@ int webBackend(string catalogePath)
 			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
 
 			string answer = reqArgs[2] + ";";
+			answer += reqArgs[1] + ";";
 			for (int i = 0; i < closeNeigh.size(); i++)
 			{
 				answer += hashTable[closeNeigh[i]] + ';';
@@ -1287,7 +1288,7 @@ int webBackend(string catalogePath)
 			answer += '\n';
 
 			HANDLE outFile = NULL;
-			while (outFile == NULL)
+			while (outFile == NULL || outFile == INVALID_HANDLE_VALUE)
 			{
 				outFile = CreateFile(
 					_TEXT("D:\\tsff_back2front"),
@@ -1298,13 +1299,22 @@ int webBackend(string catalogePath)
 					FILE_ATTRIBUTE_HIDDEN,
 					NULL);
 
-				if (outFile == NULL)
-					Sleep(10);
-
-				if (outFile == INVALID_HANDLE_VALUE)
+				if (outFile == NULL || outFile == INVALID_HANDLE_VALUE)
 				{
-					cout << "INVALID_HANDLE_VALUE out" << endl;
+					if (outFile == INVALID_HANDLE_VALUE)
+					{
+						cout << "INVALID_HANDLE_VALUE out Error: " << to_string(GetLastError()) << endl;
+						CloseHandle(outFile);
+					}
+					Sleep(10);
 				}
+					
+
+				
+					
+
+				
+
 			}
 
 			SetFilePointer(
