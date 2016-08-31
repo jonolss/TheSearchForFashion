@@ -11,15 +11,12 @@ namespace NamedPipeTest
 
     class Program
     {
-        
 
         static void Main(string[] args)
         {
             Subprogram p1 = new Subprogram();
-
             
         }
-
         
 
     }

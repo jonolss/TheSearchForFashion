@@ -45,9 +45,6 @@ cv::Ptr<cv::ml::TrainData> createTrainingData(vector<ClothArticle*> *input, stri
 float calcEuclDist(cv::Mat fVec1, cv::Mat fVec2, cv::Mat scale);
 
 int webBackend(string catalogePath);
-int backend(string catalogePath, bool embeded);
-void frontend(string catalogePath);
-int guiFrontend(string catalogePath);
 
 inline bool validPath(const string& path);
 void clusterCataloge(vector<ClothArticle*> *cataloge, string filtType);

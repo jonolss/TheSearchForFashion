@@ -33,9 +33,6 @@
     <ClCompile Include="my_win_utills.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\..\..\dlib-18.18\dlib\all\source.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClothArticle.h">

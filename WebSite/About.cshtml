@@ -1,0 +1,134 @@
+﻿@{
+    Layout = "~/_SiteLayout.cshtml";
+    Page.Title = "Fashion Search";
+}
+
+<hgroup class="title">
+    <h1>@Page.Title.</h1>
+    <h2>Here you can search for similar fashion items.</h2>
+</hgroup>
+
+@{ 
+    var frontend = new FileClient.FrontEnd();
+
+    string message = frontend.hello;
+    string message2 = frontend.hello;
+
+    string extramessage = DateTime.Now.Ticks.ToString() ;
+}
+
+@{ 
+    var ref1 = "";
+    string[] ids = null;
+    var ref2 = "";
+    string[] ids2 = null;
+    if (IsPost)
+    {
+        var fileName = Request["text3"];
+        if(fileName.Length > 0)
+        {
+            string sessionId = Session.SessionID;
+            string currTime = DateTime.Now.Ticks.ToString();
+            
+            string id = sessionId + currTime;
+
+            string msg = "imgSearch2;" +
+              "testfiles/" + fileName + ";" +
+              id + "\n";
+
+
+
+            /*
+            var msg = "imgSearch\n" +
+                      "testfiles/" + fileName + "\n" +
+                      "12\n" +
+                      "ClothingType,Silhouette,Pattern,Color,Template,\n" +
+                      "1,1,2,2,2\n" +
+                      "None\t"; //"None\n";
+                      */
+
+
+            message = frontend.Run(msg, id);
+
+            ids = message.Split(';');
+
+            ref1 = ids[0];
+        }
+        else
+        {
+            message = "Invalid input, file name must be longer than 0.";
+            message2 = "";
+        }
+    }
+
+
+}
+
+
+<article>
+    <div id ="resultbox">
+        <table>
+            @if (ids != null)
+            {
+                for (int i = 0; i < (ids.Length-2) / 4; i++)
+                {
+                    <tr>
+                        @for (int j = 0; j < 4; j++)
+                        {
+                            if (ids[i] != "")
+                            {
+                                <th><img src=@ids[i*4+j+2] alt="Result1" style="width:180px;height:180px;" /></th>
+                            }
+                        }
+                    </tr>
+                }
+            }
+        </table>
+
+    </div>
+    
+    <p>
+        Use this area to provide additional information.
+    </p>
+
+    <p>
+        Use this area to provide additional information.
+    </p>
+</article>
+
+<aside>
+    <h3>Perform Search</h3>
+
+    <p>
+        Type in the path to an item here.
+    </p>
+    <form action="" method="post">
+        <p>
+            <label for="text3">FileName:</label>
+            <input type="text" name="text3" />
+        </p>
+        <p><input type="submit" value="Search" /></p>
+    </form>
+    
+    @if (ids != null)
+    {
+        if (ids[1] != "")
+        {
+            <p>
+                <img src=@ids[1] alt="Result1" style="width:180px;height:180px;" />
+            </p>
+        }
+    }
+    
+    
+<!--
+    <p>
+        Use this area to provide additional information.
+    </p>
+    <ul>
+        <li><a href="~/">Home</a></li>
+        <li><a href="~/About">About</a></li>
+        <li><a href="~/Contact">Contact</a></li>
+    </ul>
+ -->
+</aside>

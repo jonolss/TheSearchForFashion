@@ -18,8 +18,7 @@
 HANDLE reciSlot;
 HANDLE sendSlot;
 unordered_map<string, string> hashTable;
-LPCWSTR g_szClassName = TEXT("myWindowClass");
-
+LPCSTR g_szClassName = TEXT("myWindowClass");
 
 /**Check if the path is valid.
 *
@@ -33,30 +32,6 @@ inline bool validPath(const string& path) {
 	return (stat(path.c_str(), &buffer) == 0);
 }
 
-/**Prints a simple text-based menu.
-*
-* \param message A message that is displayed under the menu.
-*/
-void printMainMenu(string message)
-{ 
-	cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$               THE SEARCH FOR FASHION                  $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$   1.     Check status of backend.                     $$" << endl
-		 << "$$   2.     Send a search query.                         $$" << endl
-		 << "$$   START  Starts a backend process.                    $$" << endl
-		 << "$$   SAVE   Saves cataloge for faster starts.            $$" << endl
-		 << "$$   END    Terminates backend process.                  $$" << endl
-		 << "$$   end    Exits program.                               $$" << endl
-		 << "$$                                                       $$" << endl
-		 << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << endl;
-	cout << message << endl;
-}
 
 /**Makes a hashmap between an item's id and the path to its image. 
 *
@@ -77,348 +52,8 @@ unordered_map<string, string> makeIdToPathTable(vector<ClothArticle *> cataloge)
 	return hashTable;
 }
 
-/**Text based interface loop for handling input and output of the user.
-*
-* /param catalogePath The path to cataloge of items.
-*/
-void frontend(string catalogePath)
-{
-	unordered_map<string, string> hashTable;
-	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
-	hashTable = makeIdToPathTable(*tmp);
-
-	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
-		return;
-
-
-	string message = "";
-	string inp = "";
-	while (inp != "end")
-	{
-		printMainMenu(message);
-		cin >> inp;
-		if (inp == "1")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-				message = "Backend is online.";
-			else
-				message = "Backend is offline.";
-		}
-		else if(inp == "2")
-		{
-			if(!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				message = "Couldn't send request, backend is offline.";
-			}
-			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				string query = "imgSearch\n";
-				string inputPath;
-
-				bool valid = false;
-				do
-				{
-					cout << "Input path to search query: ";
-					cin >> inputPath;
-
-					if (inputPath == "Defualt")
-					{
-						query += "live0.jpg\n";
-						valid = true;
-					}
-					else if (validPath(Config::get().TEST_FOLDER + inputPath))
-					{
-						inputPath = Config::get().TEST_FOLDER + inputPath;
-						query += inputPath + '\n';
-						valid = true;
-					}
-					else
-					{
-						cout << "Incorrect path." << endl;
-					}
-				} while (!valid);
-
-				valid = false;
-				do
-				{
-					cout << "Input number of hits (maximum size = " + to_string(Config::get().MAXIMUM_SEARCH_HITS) + "): ";
-					string inputHits;
-					cin >> inputHits;
-
-					if (inputHits == "Defualt")
-					{
-						query += "5\n";
-						valid = true;
-					}
-					try
-					{
-						int n = stoi(inputHits);
-						if (n > Config::get().MAXIMUM_SEARCH_HITS)
-							throw 2;
-						query += inputHits + '\n';
-						valid = true;
-					}
-					catch (exception e)
-					{
-						cout << "Invalid input, input must be an integer." << endl;
-					}
-					catch (int e)
-					{
-						cout << "Invalid input, input must be an integer smaller or equal to " + to_string(Config::get().MAXIMUM_SEARCH_HITS) << endl;
-					}
-				} while (!valid);
-
-				valid = false;
-				do
-				{
-					cout << "Choose feat vectors (0 - All, 1 - Only Color, 2 - Only Clothing Type, 3 - Only Pattern): ";
-					string fVec;
-					cin >> fVec;
-					try 
-					{
-						if (fVec == "0")
-						{
-							query += "All\n";
-							valid = true;
-						}
-						else if (fVec == "1")
-						{
-							query += "Color\n";
-							valid = true;
-						}
-						else if (fVec == "2")
-						{
-							query += "ClothingType\n";
-							valid = true;
-						}
-						else if (fVec == "3")
-						{
-							query += "Pattern\n";
-							valid = true;
-						}
-						else
-						{
-							throw 2;
-						}
-						int b = stoi(fVec);
-					}
-					catch (exception e)
-					{
-						cout << "Invalid input, must be integer." << endl;
-					}
-					catch (int e)
-					{
-						cout << "Invalid input, invalid integer value." << endl;
-					}
-				} while (!valid);
-
-
-				valid = false;
-				do
-				{
-					cout << "Choose filters (0 - None, 1 - Same Color, 2 - Same Clothing Type, 3 - Silhouette , 4 - All): ";
-					string filter;
-					cin >> filter;
-					try
-					{
-						if (filter == "0")
-						{
-							query += "None\n";
-							valid = true;
-						}
-						else if (filter == "1")
-						{
-							query += "Color\n";
-							valid = true;
-						}
-						else if (filter == "2")
-						{
-							query += "ClothingType\n";
-							valid = true;
-						}
-						else if (filter == "3")
-						{
-							query += "Silhouette\n";
-							valid = true;
-						}
-						else if (filter == "4")
-						{
-							query += "ClustColor\n";
-						}
-						else if (filter == "5")
-						{
-							query += "ClustClType\n";
-						}
-						else if (filter == "6")
-						{
-							query += "All\n";
-							valid = true;
-						}
-						else
-						{
-							throw 2;
-						}
-						int b = stoi(filter);
-					}
-					catch (exception e)
-					{
-						cout << "Invalid input, must be integer." << endl;
-					}
-					catch (int e)
-					{
-						cout << "Invalid input, invalid integer value." << endl;
-					}
-				} while (!valid);
-
-				std::wstring stemp = string2wstring(query);
-				LPCWSTR lquery = stemp.c_str();
-				writeSlot(sendSlot, lquery);
-				CloseHandle(sendSlot);
-
-				vector<string> results;
-				while (results.empty())
-				{
-					string request = readSlot(reciSlot);
-
-					if (request == "FALSE")
-						return;
-
-					if (request != "")
-					{
-						char tmp;
-						int pos = request.find('\n');
-						while (pos != string::npos)
-						{
-							results.push_back(request.substr(0, pos));
-							request = request.substr(pos + 1, request.length() - pos + 1);
-							pos = request.find('\n');
-						}
-					}
-					else
-					{
-						Sleep(1);
-					}
-				}
-
-				cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
-				cv::Mat tmpImg3 = resizeImg(tmpImg, 300, 300);
-				cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
-
-				cv::cvtColor(tmpImg2, tmpImg2, CV_BGR2GRAY);
-
-				cv::threshold(tmpImg2, tmpImg2, 248, 255, CV_THRESH_BINARY_INV);
-				//cv::bitwise_not(tmpImg2, tmpImg2);
-				tmpImg2 = tmpImg2 * 255;
-
-				cv::Mat out;
-				onlyBackground(tmpImg2, out);
-				out *= 255;
-
-				cv::Mat edge = preformCanny(out, 80, 140);
-				cv::Mat edge2 = preformCanny(tmpImg2, 80, 140);
-
-				cv::namedWindow("Query EDGE", 1);
-				cv::imshow("Query EDGE", edge);
-
-				cv::namedWindow("Query EDGE2", 1);
-				cv::imshow("Query EDGE2", edge2);
-
-				cv::namedWindow("Query", 1);
-				cv::imshow("Query", tmpImg3);
-				for (int i = 0; i < results.size(); i++)
-				{
-					cout << results[i] << " : " << hashTable[results[i]] << endl;
-					tmpImg = cv::imread(hashTable[results[i]], cv::IMREAD_UNCHANGED);
-					cout << hashTable[results[i]] << endl;
-					if (hashTable[results[i]].find(".png") != string::npos)
-						filterAlphaArtifacts(&tmpImg);
-					tmpImg2 = resizeImg(tmpImg, 300, 300);
-
-					cv::Mat tmpImg3;
-					cv::cvtColor(tmpImg2, tmpImg3, CV_BGR2GRAY);
-					cv::threshold(tmpImg3, tmpImg3, 248, 255, CV_THRESH_BINARY_INV);
-					cv::Mat tmpImg4;
-					onlyBackground(tmpImg3, tmpImg4);
-					tmpImg4 *= 255;
-					tmpImg4 = preformGaussianBlur(tmpImg4);
-					tmpImg4 = preformCanny(tmpImg4, 80, 140);
-
-					
-					
-
-					cv::namedWindow("Result # " + to_string(i + 1), 1);
-					cv::imshow("Result # " + to_string(i + 1), tmpImg2);
-				}
-				cv::waitKey(0);
-				cv::destroyAllWindows();
-			}
-		}
-		else if (inp == "END")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
-				{
-					writeSlot(sendSlot, TEXT("END\n"));
-					CloseHandle(sendSlot);
-				}
-				message = "Terminating backend.";
-			}
-			else
-				message = "Backend is already offline.";
-		}
-		else if (inp == "START")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				message = "Backend already up and running.";
-			}
-			else
-			{
-				STARTUPINFO si;
-				PROCESS_INFORMATION pi;
-
-				ZeroMemory(&si, sizeof(si));
-				si.cb = sizeof(si);
-				ZeroMemory(&pi, sizeof(pi));
-
-				CreateProcess(TEXT("./The_Search_For_Fashion.exe"),   // the path
-					TEXT("The_Search_For_Fashion -b --embeded"),       // Command line
-					NULL,           // Process handle not inheritable
-					NULL,           // Thread handle not inheritable
-					FALSE,          // Set handle inheritance to FALSE
-					0,              // No creation flags
-					NULL,           // Use parent's environment block
-					NULL,           // Use parent's starting directory 
-					&si,            // Pointer to STARTUPINFO structure
-					&pi             // Pointer to PROCESS_INFORMATION structure
-					);
-				// Close process and thread handles. 
-				CloseHandle(pi.hProcess);
-				CloseHandle(pi.hThread);
-				message = "Starting backend.";
-			}
-		}
-		else if (inp == "SAVE")
-		{
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
-				{
-					writeSlot(sendSlot, TEXT("SAVE\n"));
-					CloseHandle(sendSlot);
-				}
-				message = "Saved cataloge.";
-			}
-			else
-				message = "Backend is offline.";
-		}
-	}
-
-}
-
-
 /**Checks if search query string is valid.
+* Old variant, not used for webb interface.
 *
 * \param query Search query string.
 * \return Returns true if query is valid, false otherwise.
@@ -465,6 +100,11 @@ bool validQuery(string query)
 	return true;
 }
 
+/**Checks if search query string is valid.
+*
+* \param query Search query string.
+* \return Returns true if query is valid, false otherwise.
+*/
 bool validQuery2(string query)
 {
 	istringstream iss(query);
@@ -489,380 +129,10 @@ bool validQuery2(string query)
 	return true;
 }
 
-
-/**Creates a search query from input.
+/**Creates a basic SECURITY_ATTRIBUTES
 *
-* \param path The path of the query.
-* \param numRes The number of the results the query wants.
-* \param featNum The type of features being used in the query.
-* \param filtNum The type of filter being used in the query.
-* \return A string of the query that can be directly send to the backend.
+* \param se A SECURITY_ATTRIBUTES pointer.
 */
-inline string createQuery(LPTSTR path, LPTSTR numRes, int featNum[4], double featVal[4], int filtNum)
-{
-	string out = "imgSearch\n";
-
-	char tmp[32] = { '\0' };
-	cout << (string)tmp << endl;
-	int i;
-	for (i = 0; path[i] != '\0'; i++)
-	{
-		tmp[i] = path[i];
-	}
-	tmp[i] = '\0';
-	out += Config::get().TEST_FOLDER + string(tmp) + "\n";
-
-	for (i = 0; numRes[i] != '\0'; i++)
-	{
-		tmp[i] = numRes[i];
-	}
-	tmp[i] = '\0';
-	out += string(tmp) + "\n";
-
-	
-	if(featNum[0])
-		out += "ClothingType,";
-	if (featNum[1])
-		out += "Silhouette,";
-	if (featNum[2])
-		out += "Pattern,";
-	if (featNum[3])
-		out += "Color,";
-	if (featNum[4])
-		out += "Template,";
-	out += "\n";
-
-	out += to_string(featVal[0]) + ",";
-	out += to_string(featVal[1]) + ",";
-	out += to_string(featVal[2]) + ",";
-	out += to_string(featVal[3]) + ",";
-	out += to_string(featVal[4]) + "\n";
-
-	switch (filtNum)
-	{
-	case filtNone:
-		out += "None\n";
-		break;
-	case filtColor:
-		out += "Color\n";
-		break;
-	case filtClType:
-		out += "ClothingType\n";
-		break;
-	case filtCluster:
-		out += "Silhouette\n";
-		break;
-	case filtClustColor:
-		out += "ClustColor\n";
-		break;
-	case filtClustClType:
-		out += "ClustClType\n";
-		break;
-	case filtAll:
-		out += "All\n";
-		break;
-	}
-
-	return out;
-}
-
-/**Sends a search query to the backend.
-*
-* \param results The result of request.
-* \param query The query being sent.
-* \return Returns true if it succeded, else false.
-*/
-bool sendQuery(vector<string> &results, string query)
-{
-	std::wstring stemp = string2wstring(query);
-	LPCWSTR lquery = stemp.c_str();
-	writeSlot(sendSlot, lquery);
-	CloseHandle(sendSlot);
-
-	while (results.empty())
-	{
-		string request = readSlot(reciSlot);
-
-		if (request == "FALSE")
-			return false;
-
-		if (request != "")
-		{
-			char tmp;
-			int pos = request.find('\n');
-			while (pos != string::npos)
-			{
-				results.push_back(request.substr(0, pos));
-				request = request.substr(pos + 1, request.length() - pos + 1);
-				pos = request.find('\n');
-			}
-		}
-		else
-		{
-			Sleep(1);
-		}
-	}
-	return true;
-}
-
-/**Responds to messages sent by the OS/User.
-*
-*/
-inline LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-
-	HWND tmp;
-	LPTSTR path = (LPTSTR)new char[32];
-	LPTSTR numRes = (LPTSTR)new char[32];
-	int featNum[] = { 0,0,0,0,0 };
-	int filtNum = filtNone;
-	double featVal[] = { 0.,0.,0.,0.,0. };
-	string query;
-
-	switch (msg)
-	{
-	case WM_COMMAND:
-		switch (LOWORD(wParam))
-		{
-
-		case searchButton:
-			if (!isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Couldn't send request, backend is offline."));
-			}
-			else if (MakeSendSlot(FRONT_TO_BACK_SLOT, &sendSlot))
-			{
-				tmp = FindWindowEx(hwnd, NULL, WC_COMBOBOX, NULL);
-				GetWindowText(tmp, path, 32);
-
-				tmp = FindWindowEx(hwnd, tmp, WC_COMBOBOX, NULL);
-				GetWindowText(tmp, numRes, 32);
-
-				tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Feature"));
-				checkFeatGroup(featNum, tmp, featClType);
-
-				tmp = FindWindowEx(hwnd, NULL, _T("static"), _T("Feat Multiplier"));
-				checkFeatValues(featVal, tmp);
-
-				//tmp = FindWindowEx(hwnd, NULL, _T("button"), _T("Filter"));
-				//filtNum = checkRadioGroup(tmp, filtNone, filtAll);
-
-				cout << featVal[0] << endl;
-				cout << featVal[1] << endl;
-				cout << featVal[2] << endl;
-				cout << featVal[3] << endl;
-				cout << featVal[4] << endl;
-
-				query = createQuery(path, numRes, featNum, featVal, filtNum);
-
-				cout << query << endl;
-
-				tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-				if (validQuery(query))
-				{
-					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Initiating search."));
-
-					vector<string> results;
-					cout << sendQuery(results, query) << endl;
-
-					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Showcasing results."));
-
-					string sTmp = query.substr(query.find('\n') + 1, query.length() - query.find('\n'));
-					string inputPath = sTmp.substr(0, sTmp.find('\n'));
-					cv::Mat tmpImg = cv::imread(inputPath, cv::IMREAD_UNCHANGED);
-					cv::Mat tmpImg3 = resizeImg(tmpImg, 300, 300);
-
-					cv::Mat tmpImg3x;
-					fixInternalPadding(tmpImg3, tmpImg3x);
-
-					cv::Mat tmpImg2 = resizeImg(tmpImg, 300, 300);
-
-					cv::cvtColor(tmpImg2, tmpImg2, CV_BGR2GRAY);
-
-					cv::threshold(tmpImg2, tmpImg2, 248, 255, CV_THRESH_BINARY_INV);
-					//cv::bitwise_not(tmpImg2, tmpImg2);
-					tmpImg2 = tmpImg2 * 255;
-
-					cv::Mat out;
-					onlyBackground(tmpImg2, out);
-					out *= 255;
-
-					cv::Mat edge = preformCanny(out, 80, 140);
-					cv::Mat edge2 = preformCanny(tmpImg2, 80, 140);
-
-					cv::destroyAllWindows();
-
-//#define SHOW_EDGE
-#ifdef SHOW_EDGE
-					cv::namedWindow("Query EDGE", 1);
-					cv::imshow("Query EDGE", edge);
-
-					cv::namedWindow("Query EDGE2", 1);
-					cv::imshow("Query EDGE2", edge2);
-#endif
-					cv::namedWindow("Query", 1);
-
-#ifdef _PADDING
-					cv::imshow("Query", tmpImg3x);
-#else
-					cv::imshow("Query", tmpImg3);
-#endif
-					for (int i = 0; i < results.size(); i++)
-					{
-						cout << results[i] << " : " << hashTable[results[i]] << endl;
-						tmpImg = cv::imread(hashTable[results[i]], cv::IMREAD_UNCHANGED);
-						cout << hashTable[results[i]] << endl;
-						if (hashTable[results[i]].find(".png") != string::npos)
-						{
-							filterAlphaArtifacts(&tmpImg);
-							cv::cvtColor(tmpImg, tmpImg, CV_BGRA2BGR);
-						}
-						tmpImg2 = resizeImg(tmpImg, 300, 300);
-
-						cv::Mat tmpImg2x;
-						fixInternalPadding(tmpImg2, tmpImg2x);
-
-						cv::Mat tmpImg3;
-						cv::cvtColor(tmpImg2x, tmpImg3, CV_BGR2GRAY);
-						cv::threshold(tmpImg3, tmpImg3, 248, 255, CV_THRESH_BINARY_INV);
-						cv::Mat tmpImg4;
-						onlyBackground(tmpImg3, tmpImg4);
-						tmpImg4 *= 255;
-						tmpImg4 = preformGaussianBlur(tmpImg4);
-						tmpImg4 = preformCanny(tmpImg4, 80, 140);
-
-						cv::namedWindow("Result # " + to_string(i + 1), 1);
-#ifdef _PADDING
-						cv::imshow("Result # " + to_string(i + 1), tmpImg2x);
-#else
-						cv::imshow("Result # " + to_string(i + 1), tmpImg2);
-#endif
-
-					}
-					cv::waitKey(0);
-					cv::destroyAllWindows();
-
-					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT(""));
-				}
-				else
-				{
-					SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Wrong input, try again."));
-				}
-			}
-			break;
-		case onlineButton:
-			tmp = FindWindowEx(hwnd, NULL, _T("static"), NULL);
-			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-			tmp = FindWindowEx(hwnd, tmp, _T("static"), NULL);
-			if (isOnline(FRONT_TO_BACK_SLOT, &sendSlot))
-				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Backend is online."));
-			else
-				SendMessage(tmp, WM_SETTEXT, (WPARAM)0, (LPARAM)TEXT("Backend is offline."));
-			break;
-		}
-		break;
-	case WM_CREATE:
-		OnCreate(hwnd, reinterpret_cast<CREATESTRUCT*>(lParam));
-		break;
-	case WM_CLOSE:
-		DestroyWindow(hwnd);
-		break;
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
-	default:
-		return DefWindowProc(hwnd, msg, wParam, lParam);
-	}
-	return 0;
-}
-
-/**Graphical interface loop for handling input and output of the user.
-*
-* /param catalogePath The path to cataloge of items.
-* /return Returns 0 if closed correctly, else it returns an error.
-*/
-int guiFrontend(string catalogePath)
-{
-	
-	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
-	hashTable = makeIdToPathTable(*tmp);
-
-	if (!MakeReciSlot(BACK_TO_FRONT_SLOT, &reciSlot))
-		return -1;
-
-
-	WNDCLASSEX wc;
-	HWND hwnd;
-	MSG Msg;
-
-	//Step 1: Registering the Window Class
-	wc.cbSize = sizeof(WNDCLASSEX);
-	wc.style = 0;
-	wc.lpfnWndProc = WndProc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = NULL;
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wc.lpszMenuName = NULL;
-	wc.lpszClassName = g_szClassName;
-	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-
-	if (!RegisterClassEx(&wc))
-	{
-		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"),
-			MB_ICONEXCLAMATION | MB_OK);
-		return -1;
-	}
-
-	// Step 2: Creating the Window
-	hwnd = CreateWindowEx(
-		0,
-		g_szClassName,
-		TEXT("The Search For Fashion"),
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		550,
-		400,
-		NULL,
-		NULL,
-		NULL,
-		NULL);
-
-
-
-	if (hwnd == NULL)
-	{
-		MessageBox(NULL, TEXT("Window Creation Failed!"), TEXT("Error!"),
-			MB_ICONEXCLAMATION | MB_OK);
-		return -1;
-	}
-
-
-	ShowWindow(hwnd, SW_SHOW);
-	UpdateWindow(hwnd);
-
-	// Step 3: The Message Loop
-	while (GetMessage(&Msg, NULL, 0, 0) > 0)
-	{
-		TranslateMessage(&Msg);
-		DispatchMessage(&Msg);
-	}
-	return Msg.wParam;
-}
-
-
-
 void createSemSecAtt(SECURITY_ATTRIBUTES *sa)
 {
 	DWORD dwRes, dwDisposition;
@@ -1079,7 +349,14 @@ DWORD WINAPI readingFromFileV2(LPVOID lpParam)
 	}
 }
 
-
+/**Initialises the backend for the web-based interface.
+* Starts a thread that continously reads a file where requests can be sent.
+* The requests are then computed in the main thread and the results are sent to another file, where they can be read by the requesting program.
+* Filenames are hard coded at the moment, requests should be written in "D:\\tsff_front2back" and results can be found in "D:\\tsff_back2front".
+*
+* \param catalogePath Path to the cataloge-file.
+*
+*/
 int webBackend(string catalogePath)
 {
 	vector<ClothArticle*> *tmp = readCatalogeFromFile(catalogePath, true);
@@ -1137,7 +414,7 @@ int webBackend(string catalogePath)
 	queue<string> *jobs = new queue<string>();
 
 	PREADDATA thArgs = (PREADDATA) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(READDATA));
-	thArgs->fileName = _TEXT("D:\\tsff_front2back");
+	thArgs->fileName = _TEXT(L"D:\\tsff_front2back");
 	thArgs->jobs = jobs;
 
 	readThread = CreateThread(
@@ -1150,37 +427,11 @@ int webBackend(string catalogePath)
 		);
 
 
-
+	//Request loop, if no new request, waits for 10ms.
 	while (true)
 	{
 		cout << count++ << endl;
 		vector<string> reqArgs;
-		/*
-		while (reqArgs.empty())
-		{
-			string request = readSlot(reciSlot);
-
-			if (request == "FALSE")
-				return 1;
-
-
-			if (request != "")
-			{
-				char tmp;
-				int pos = request.find('\n');
-				while (pos != string::npos)
-				{
-					reqArgs.push_back(request.substr(0, pos));
-					request = request.substr(pos + 1, request.length() - pos + 1);
-					pos = request.find('\n');
-				}
-			}
-			else
-			{
-				Sleep(1);
-			}
-		}
-		*/
 		
 		while (jobs->empty())
 		{
@@ -1212,7 +463,7 @@ int webBackend(string catalogePath)
 		}
 
 		string reqType = reqArgs[0];
-		if (reqType == "imgSearch2" && validQuery2(request))
+		if (reqType == "imgSearch2" && validQuery2(request)) //Current formating of requests and results.
 		{
 			string path = reqArgs[1];
 			int    n = 12;                                                       //stoi(reqArgs[2]);
@@ -1252,26 +503,34 @@ int webBackend(string catalogePath)
 			vector<string> fVecTypes;
 			{
 				char tmp[120];
-				strcpy(tmp, fVecType.c_str());
+				//strcpy(tmp, fVecType.c_str());
+				strcpy_s(tmp, fVecType.c_str());
 				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
+				char **tmpContext = NULL;
+				//tmpPoint = strtok(tmp, ",");
+				tmpPoint = strtok_s(tmp, ",", tmpContext);
 				while (tmpPoint != NULL)
 				{
 					fVecTypes.push_back(string(tmpPoint));
-					tmpPoint = strtok(NULL, ",");
+					//tmpPoint = strtok(NULL, ",");
+					tmpPoint = strtok_s(NULL, ",", tmpContext);
 				}
 			}
 
 			vector<double> fVecValsD;
 			{
 				char tmp[120];
-				strcpy(tmp, fVecVals.c_str());
+				//strcpy(tmp, fVecVals.c_str());
+				strcpy_s(tmp, fVecVals.c_str());
 				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
+				char **tmpContext = NULL;
+				//tmpPoint = strtok(tmp, ",");
+				tmpPoint = strtok_s(tmp, ",", tmpContext);
 				while (tmpPoint != NULL)
 				{
 					fVecValsD.push_back(stod(string(tmpPoint)));
-					tmpPoint = strtok(NULL, ",");
+					//tmpPoint = strtok(NULL, ",");
+					tmpPoint = strtok_s(NULL, ",", tmpContext);
 				}
 			}
 
@@ -1308,12 +567,6 @@ int webBackend(string catalogePath)
 					}
 					Sleep(10);
 				}
-					
-
-				
-					
-
-				
 
 			}
 
@@ -1326,12 +579,13 @@ int webBackend(string catalogePath)
 			cout << "Sending Results" << endl;
 
 			memset(outBuf, 0, BUFFER_SIZE);
-			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			//strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			strncpy_s(outBuf, answer.c_str(), BUFFER_SIZE);
 			dwBytesToWrite = (DWORD)strlen(outBuf);
 			WriteFile(outFile, outBuf, dwBytesToWrite, &cbWritten, NULL);
 			CloseHandle(outFile);
 		}
-		else if (reqType == "imgSearch" && validQuery(request))
+		else if (reqType == "imgSearch" && validQuery(request)) //Old formating of requests and results.
 		{
 			string path = reqArgs[1];
 			int    n = 12;                                                       //stoi(reqArgs[2]);
@@ -1371,26 +625,34 @@ int webBackend(string catalogePath)
 			vector<string> fVecTypes;
 			{
 				char tmp[120];
-				strcpy(tmp, fVecType.c_str());
+				//strcpy(tmp, fVecType.c_str());
+				strcpy_s(tmp, fVecType.c_str());
 				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
+				char **tmpContext = NULL;
+				//tmpPoint = strtok(tmp, ",");
+				tmpPoint = strtok_s(tmp, ",", tmpContext);
 				while (tmpPoint != NULL)
 				{
 					fVecTypes.push_back(string(tmpPoint));
-					tmpPoint = strtok(NULL, ",");
+					//tmpPoint = strtok(NULL, ",");
+					tmpPoint = strtok_s(NULL, ",", tmpContext);
 				}
 			}
 
 			vector<double> fVecValsD;
 			{
 				char tmp[120];
-				strcpy(tmp, fVecVals.c_str());
+				//strcpy(tmp, fVecVals.c_str());
+				strcpy_s(tmp, fVecVals.c_str());
 				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
+				char **tmpContext = NULL;
+				//tmpPoint = strtok(tmp, ",");
+				tmpPoint = strtok_s(tmp, ",", tmpContext);
 				while (tmpPoint != NULL)
 				{
 					fVecValsD.push_back(stod(string(tmpPoint)));
-					tmpPoint = strtok(NULL, ",");
+					//tmpPoint = strtok(NULL, ",");
+					tmpPoint = strtok_s(NULL, ",", tmpContext);
 				}
 			}
 
@@ -1431,7 +693,8 @@ int webBackend(string catalogePath)
 			//cout << answer << endl;
 
 			memset(outBuf, 0, BUFFER_SIZE);
-			strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			//strncpy(outBuf, answer.c_str(), BUFFER_SIZE);
+			strncpy_s(outBuf, answer.c_str(), BUFFER_SIZE);
 			dwBytesToWrite = (DWORD)strlen(outBuf);
 			WriteFile(outFile, outBuf, dwBytesToWrite, &cbWritten, NULL);
 			CloseHandle(outFile);
@@ -1445,191 +708,6 @@ int webBackend(string catalogePath)
 	}
 }
 
-/**Backend loop that handles requests from the front end of the program.
-*
-* \param catalogePath The path to cataloge of items.
-* \param embeded Should be true if started as a child process. False if it is started stand-alone.
-* \return Return 0 if closed correctly, else it returns an error.
-*/
-int backend(string catalogePath, bool embeded)
-{
-	
-	vector<ClothArticle*> *allArticles;
-	cv::Ptr<cv::ml::RTrees> colorModel;
-	cv::Ptr<cv::ml::RTrees> clTypeModel;
-	cv::Ptr<cv::ml::RTrees> clustSillModel;
-	cv::Ptr<cv::ml::RTrees> clustColorModel;
-	cv::Ptr<cv::ml::RTrees> clustClTypeModel;
-	if (validPath(catalogePath + Config::get().SAVE_EXTENTION) && validPath(catalogePath + Config::get().MODEL_COLOR_EXTENTION) && validPath(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION))
-	{
-		cout << Config::get().SAVE_EXTENTION << endl;
-		cout << Config::get().MODEL_COLOR_EXTENTION << endl;
-		cout << Config::get().MODEL_CLTYPE_EXTENTION << endl;
-		allArticles = loadCataloge(catalogePath + Config::get().SAVE_EXTENTION);
-		colorModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
-		clTypeModel = cv::Algorithm::load<cv::ml::RTrees>(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
-	}
-	else
-	{
-		allArticles = readCatalogeFromFile(catalogePath, false);
-#ifdef _FILTERS
-		clusterCataloge(allArticles, "Silhouette");
-		clusterCataloge(allArticles, "ClustColor");
-		clusterCataloge(allArticles, "ClustClType");
-		colorModel = makeRTModel(allArticles, "Color");
-		clTypeModel = makeRTModel(allArticles, "ClothingType");
-		clustSillModel = makeRTModel(allArticles, "Silhouette");
-		clustColorModel = makeRTModel(allArticles, "ClustColor");
-		clustClTypeModel = makeRTModel(allArticles, "ClustClType");
-		colorModel->save(catalogePath + Config::get().MODEL_COLOR_EXTENTION);
-		clTypeModel->save(catalogePath + Config::get().MODEL_CLTYPE_EXTENTION);
-#endif
-	}
-
-	if (!MakeReciSlot(FRONT_TO_BACK_SLOT, &reciSlot))
-		return 1;
-	
-	while (true)
-	{
-
-		vector<string> reqArgs;
-		
-		if(!embeded)
-		{
-			cout << "Awaiting new query..." << endl;
-		}
-
-		while (reqArgs.empty())
-		{
-			string request = readSlot(reciSlot);
-
-			if (request == "FALSE")
-				return 1;
-
-
-			if(request != "")
-			{
-				char tmp;
-				int pos = request.find('\n');
-				while (pos != string::npos)
-				{
-					reqArgs.push_back(request.substr(0, pos));
-					request = request.substr(pos+1, request.length() - pos+1);
-					pos = request.find('\n');
-				}
-			}
-			else
-			{
-				Sleep(1);
-			}
-		}
-		
-		string reqType = reqArgs[0];
-		if (reqType == "END")
-		{
-			return 0;
-		}
-		else if (reqType == "imgSearch")
-		{
-			string path = reqArgs[1];
-			int    n = stoi(reqArgs[2]);
-			string fVecType = reqArgs[3];
-			string fVecVals = reqArgs[4];  // <--- fixa in dom här till featFilter
-			string filters = reqArgs[5];
-
-			ClothArticle* queryArticle = new ClothArticle("Query", path, "Rod", "Top", -1);
-
-#ifdef _FILTERS
-			cv::Mat multVec;
-			cv::Mat featVec = createFeatureVector(queryArticle);// , "Color");
-			cv::Mat filtVec = createFilterVector(featVec.size(), "Color", 1.0f, 0.0f);
-			cv::multiply(featVec, filtVec, multVec);
-			queryArticle->setColor(art_color((int)colorModel->predict(multVec)));
-
-			featVec = createFeatureVector(queryArticle);
-			filtVec = createFilterVector(featVec.size(), "ClothingType", 1.0f, 0.0f);
-			cv::multiply(featVec, filtVec, multVec);
-			queryArticle->setClType(art_clType((int)clTypeModel->predict(multVec)));
-
-			featVec = createFeatureVector(queryArticle);
-			filtVec = createFilterVector(featVec.size(), "Silhouette", 1.0f, 0.0f);
-			cv::multiply(featVec, filtVec, multVec);
-			queryArticle->setClusterId((int)clustSillModel->predict(multVec));
-
-			featVec = createFeatureVector(queryArticle);
-			filtVec = createFilterVector(featVec.size(), "ClustColor", 1.0f, 0.0f);
-			cv::multiply(featVec, filtVec, multVec);
-			queryArticle->setClusterColor((int)clustColorModel->predict(multVec));
-
-			featVec = createFeatureVector(queryArticle);
-			filtVec = createFilterVector(featVec.size(), "ClustClType", 1.0f, 0.0f);
-			cv::multiply(featVec, filtVec, multVec);
-			queryArticle->setClusterClType((int)clustClTypeModel->predict(multVec));
-#endif
-			vector<string> fVecTypes;
-			{
-				char tmp[120];
-				strcpy(tmp, fVecType.c_str());
-				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
-				while (tmpPoint != NULL)
-				{
-					fVecTypes.push_back(string(tmpPoint));
-					tmpPoint = strtok(NULL, ",");
-				}
-			}
-
-			vector<double> fVecValsD;
-			{
-				char tmp[120];
-				strcpy(tmp, fVecVals.c_str());
-				char *tmpPoint;
-				tmpPoint = strtok(tmp, ",");
-				while (tmpPoint != NULL)
-				{
-					fVecValsD.push_back(stod(string(tmpPoint)));
-					tmpPoint = strtok(NULL, ",");
-				}
-			}
-			
-
-			//vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecType, filters);
-			vector<string> closeNeigh = findClosestNeighbours(allArticles, queryArticle, n, fVecTypes, fVecValsD, filters);
-
-			string answer = "";
-			for (int i = 0; i < closeNeigh.size(); i++)
-			{
-				answer += closeNeigh[i] + '\n';
-			}
-
-			if (MakeSendSlot(BACK_TO_FRONT_SLOT, &sendSlot))
-			{
-				std::wstring stemp = string2wstring(answer);
-				LPCWSTR ans = stemp.c_str();
-				writeSlot(sendSlot, ans);
-				CloseHandle(sendSlot);
-			}
-		}
-		else if (reqType == "STATUS")
-		{
-			;
-		}
-		else if (reqType == "SAVE")
-		{
-			saveCataloge(allArticles, catalogePath + ".sv");
-		}
-		else
-		{
-			if (MakeSendSlot(BACK_TO_FRONT_SLOT, &sendSlot))
-			{
-				writeSlot(sendSlot, TEXT("Invalid input.\n"));
-				CloseHandle(sendSlot); 
-			}
-		}
-
-		
-	}
-}
 
 /**Finds the n closest neigboours to given files.
 *
@@ -1787,7 +865,14 @@ vector<string> findClosestNeighbours(vector<ClothArticle*> *allArticles, ClothAr
 	return topResults;
 }
 
-
+/**Creates a vector mask that can be used to filter a feature vector.
+*
+* \param vecSize The size of the mask.
+* \param filtType The type of masks.
+* \param posScale The positive scaling of the mask.
+* \param negScale The negative scaling of the mask.
+* \return A vector mask.
+*/
 cv::Mat createFilterVector(cv::Size vecSize, vector<string> filtType, float posScale, float negScale)
 {
 	cv::Mat filtVec(vecSize, CV_32FC1, cv::Scalar(0.0f));
@@ -1861,7 +946,6 @@ cv::Mat createFilterVector(cv::Size vecSize, string filtType, float posScale, fl
 /**Creates a feature vector.
 *
 * \param input Article who's feature vector is going to be extracted.
-* \param testType Type of feature vector, e.g. "Color", "ClothingType" or "Color+ClothingType".
 * \return Feature vector of the given article.
 */
 cv::Mat createFeatureVector(ClothArticle* input)
@@ -1874,7 +958,12 @@ cv::Mat createFeatureVector(ClothArticle* input)
 	return createFeatureVector(input, fVecVal);
 }
 
-
+/**Creates a feature vector.
+*
+* \param input Article who's feature vector is going to be extracted.
+* \param fVecVal Vector of scalars for the different features.
+* \return Feature vector of the given article.
+*/
 cv::Mat createFeatureVector(ClothArticle* input, vector<double> fVecVal) //, string fVecType)
 {
 	cv::Mat fVec;
